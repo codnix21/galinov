@@ -18,27 +18,41 @@
 
 <form method="GET" action="{{ route('moderation.index') }}" class="card p-4 mb-6 flex flex-wrap gap-3 items-end">
     <div class="flex-1 min-w-[200px]">
-        <label for="moderation-q" class="form-label">Поиск по названию</label>
-        <input type="search" id="moderation-q" name="q" value="{{ $q ?? '' }}" class="form-input" placeholder="Например: квартира на Ленина">
+        <label for="moderation-q" class="form-label">Поиск</label>
+        <input type="search" id="moderation-q" name="q" value="{{ $q ?? '' }}" class="form-input" placeholder="Название, адрес, клиент, email">
+    </div>
+    <div class="min-w-[180px]">
+        <label for="moderation-docs" class="form-label">Документы</label>
+        <select id="moderation-docs" name="docs" class="form-input">
+            <option value="all" @selected(($docs ?? 'all') === 'all')>Все</option>
+            <option value="ready" @selected(($docs ?? '') === 'ready')>Готовы к одобрению</option>
+            <option value="not_ready" @selected(($docs ?? '') === 'not_ready')>Не хватает документов</option>
+        </select>
     </div>
     <div class="min-w-[180px]">
         <label for="moderation-sort" class="form-label">Сортировка</label>
         <select id="moderation-sort" name="sort" class="form-input">
             <option value="newest" @selected(($sort ?? 'newest') === 'newest')>Сначала новые</option>
             <option value="client" @selected(($sort ?? '') === 'client')>По клиенту (ФИО)</option>
+            <option value="price" @selected(($sort ?? '') === 'price')>По цене</option>
         </select>
     </div>
-    @if(($sort ?? '') === 'client')
+    @if(in_array($sort ?? '', ['client', 'price'], true))
         <div class="min-w-[120px]">
             <label for="moderation-dir" class="form-label">Порядок</label>
             <select id="moderation-dir" name="dir" class="form-input">
-                <option value="asc" @selected(($dir ?? 'asc') === 'asc')>А → Я</option>
-                <option value="desc" @selected(($dir ?? '') === 'desc')>Я → А</option>
+                @if(($sort ?? '') === 'price')
+                    <option value="asc" @selected(($dir ?? 'asc') === 'asc')>Дешевле</option>
+                    <option value="desc" @selected(($dir ?? '') === 'desc')>Дороже</option>
+                @else
+                    <option value="asc" @selected(($dir ?? 'asc') === 'asc')>А → Я</option>
+                    <option value="desc" @selected(($dir ?? '') === 'desc')>Я → А</option>
+                @endif
             </select>
         </div>
     @endif
     <button type="submit" class="btn-primary">Применить</button>
-    @if(!empty($q) || ($sort ?? 'newest') !== 'newest')
+    @if(!empty($q) || ($sort ?? 'newest') !== 'newest' || ($docs ?? 'all') !== 'all')
         <a href="{{ route('moderation.index') }}" class="btn text-sm">Сбросить</a>
     @endif
 </form>

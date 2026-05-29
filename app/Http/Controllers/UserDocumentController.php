@@ -115,14 +115,76 @@ class UserDocumentController extends Controller
             abort(403);
         }
 
-        $documents = UserDocument::with(['user', 'property'])
-            ->orderByRaw("FIELD(status, 'pending', 'checking', 'rejected', 'verified')")
-            ->orderByDesc('sozdano_at')
-            ->paginate(30);
+        $q = trim((string) $request->input('q', ''));
+        $status = (string) $request->input('status', 'queue');
+        $tip = (string) $request->input('tip', '');
+        $scope = (string) $request->input('scope', '');
+        $sort = (string) $request->input('sort', 'queue');
+        $dir = $request->input('dir', 'asc') === 'desc' ? 'desc' : 'asc';
+
+        $qb = UserDocument::query()->with(['user', 'property']);
+
+        if ($q !== '') {
+            $escaped = addcslashes($q, '%_\\');
+            $qb->where(function ($w) use ($escaped, $q) {
+                $w->where('nazvanie', 'like', '%'.$escaped.'%')
+                    ->orWhereHas('user', function ($u) use ($escaped) {
+                        $u->where('familia', 'like', '%'.$escaped.'%')
+                            ->orWhere('imya', 'like', '%'.$escaped.'%')
+                            ->orWhere('otchestvo', 'like', '%'.$escaped.'%')
+                            ->orWhere('email_polzovatela', 'like', '%'.$escaped.'%');
+                    })
+                    ->orWhereHas('property', function ($p) use ($escaped) {
+                        $p->where('nazvanie', 'like', '%'.$escaped.'%')
+                            ->orWhere('adres_ulitsy', 'like', '%'.$escaped.'%');
+                    });
+                if (ctype_digit($q)) {
+                    $w->orWhere('nedvizhimost_id', (int) $q);
+                }
+            });
+        }
+
+        if ($status === 'queue') {
+            $qb->whereIn('status', ['pending', 'checking', 'rejected']);
+        } elseif ($status !== '' && $status !== 'all') {
+            $qb->where('status', $status);
+        }
+
+        if ($tip !== '') {
+            $qb->where('tip', $tip);
+        }
+
+        if ($scope === 'profile') {
+            $qb->whereNull('nedvizhimost_id');
+        } elseif ($scope === 'property') {
+            $qb->whereNotNull('nedvizhimost_id');
+        }
+
+        if ($sort === 'client') {
+            $qb->join('polzovateli as doc_client', 'doc_client.id', '=', 'dokumenty_proverki.polzovatel_id')
+                ->orderBy('doc_client.familia', $dir)
+                ->orderBy('doc_client.imya', $dir)
+                ->select('dokumenty_proverki.*');
+        } elseif ($sort === 'newest') {
+            $qb->orderByDesc('sozdano_at');
+        } elseif ($sort === 'oldest') {
+            $qb->orderBy('sozdano_at');
+        } else {
+            $qb->orderByRaw("FIELD(status, 'pending', 'checking', 'rejected', 'verified')")
+                ->orderByDesc('sozdano_at');
+        }
+
+        $documents = $qb->paginate(30)->withQueryString();
 
         return view('moderation.documents', [
             'documents' => $documents,
             'tipLabels' => UserDocument::tipLabels(),
+            'q' => $q,
+            'status' => $status,
+            'tip' => $tip,
+            'scope' => $scope,
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 

@@ -11,6 +11,63 @@
     <a href="{{ route('moderation.index') }}" class="btn">Модерация объявлений</a>
 </div>
 
+<form method="GET" action="{{ route('moderation.documents') }}" class="card p-4 mb-6 flex flex-wrap gap-3 items-end">
+    <div class="flex-1 min-w-[200px]">
+        <label for="doc-q" class="form-label">Поиск</label>
+        <input type="search" id="doc-q" name="q" value="{{ $q ?? '' }}" class="form-input" placeholder="Клиент, email, объект, № объявления">
+    </div>
+    <div class="min-w-[160px]">
+        <label for="doc-status" class="form-label">Статус</label>
+        <select id="doc-status" name="status" class="form-input">
+            <option value="queue" @selected(($status ?? 'queue') === 'queue')>В очереди</option>
+            <option value="all" @selected(($status ?? '') === 'all')>Все</option>
+            <option value="pending" @selected(($status ?? '') === 'pending')>На модерации</option>
+            <option value="checking" @selected(($status ?? '') === 'checking')>Автопроверка</option>
+            <option value="rejected" @selected(($status ?? '') === 'rejected')>Отклонённые</option>
+            <option value="verified" @selected(($status ?? '') === 'verified')>Проверенные</option>
+        </select>
+    </div>
+    <div class="min-w-[180px]">
+        <label for="doc-tip" class="form-label">Тип документа</label>
+        <select id="doc-tip" name="tip" class="form-input">
+            <option value="">Все типы</option>
+            @foreach($tipLabels as $code => $label)
+                <option value="{{ $code }}" @selected(($tip ?? '') === $code)>{{ $label }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div class="min-w-[150px]">
+        <label for="doc-scope" class="form-label">Привязка</label>
+        <select id="doc-scope" name="scope" class="form-input">
+            <option value="" @selected(($scope ?? '') === '')>Все</option>
+            <option value="profile" @selected(($scope ?? '') === 'profile')>Профиль</option>
+            <option value="property" @selected(($scope ?? '') === 'property')>К объекту</option>
+        </select>
+    </div>
+    <div class="min-w-[160px]">
+        <label for="doc-sort" class="form-label">Сортировка</label>
+        <select id="doc-sort" name="sort" class="form-input">
+            <option value="queue" @selected(($sort ?? 'queue') === 'queue')>По очереди</option>
+            <option value="newest" @selected(($sort ?? '') === 'newest')>Сначала новые</option>
+            <option value="oldest" @selected(($sort ?? '') === 'oldest')>Сначала старые</option>
+            <option value="client" @selected(($sort ?? '') === 'client')>По клиенту</option>
+        </select>
+    </div>
+    @if(($sort ?? '') === 'client')
+        <div class="min-w-[120px]">
+            <label for="doc-dir" class="form-label">Порядок</label>
+            <select id="doc-dir" name="dir" class="form-input">
+                <option value="asc" @selected(($dir ?? 'asc') === 'asc')>А → Я</option>
+                <option value="desc" @selected(($dir ?? '') === 'desc')>Я → А</option>
+            </select>
+        </div>
+    @endif
+    <button type="submit" class="btn-primary">Применить</button>
+    @if(!empty($q) || ($status ?? 'queue') !== 'queue' || !empty($tip) || !empty($scope) || ($sort ?? 'queue') !== 'queue')
+        <a href="{{ route('moderation.documents') }}" class="btn text-sm">Сбросить</a>
+    @endif
+</form>
+
 @forelse($documents as $doc)
     <div class="card p-5 sm:p-6 mb-4">
         <p class="font-bold">{{ $tipLabels[$doc->tip] ?? $doc->tip }}</p>
@@ -53,7 +110,7 @@
         @endif
     </div>
 @empty
-    <div class="card p-8 text-center text-gray-600">Нет документов.</div>
+    <div class="card p-8 text-center text-gray-600">По выбранным фильтрам документов не найдено.</div>
 @endforelse
 
 <div class="mt-6">{{ $documents->links() }}</div>

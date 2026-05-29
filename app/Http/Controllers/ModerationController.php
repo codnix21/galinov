@@ -34,14 +34,34 @@ class ModerationController extends Controller
         if ($pending) {
             $qb->where('status_obyavleniya_id', $pending->id);
         } else {
-            // Статус «на модерации» не настроен — показываем пустой список
             $qb->whereRaw('1 = 0');
         }
 
         $q = trim((string) $request->input('q', ''));
         if ($q !== '') {
             $escaped = addcslashes($q, '%_\\');
-            $qb->where('nazvanie', 'like', '%' . $escaped . '%');
+            $qb->where(function ($w) use ($escaped) {
+                $w->where('nazvanie', 'like', '%'.$escaped.'%')
+                    ->orWhere('adres_ulitsy', 'like', '%'.$escaped.'%')
+                    ->orWhereHas('user', function ($u) use ($escaped) {
+                        $u->where('familia', 'like', '%'.$escaped.'%')
+                            ->orWhere('imya', 'like', '%'.$escaped.'%')
+                            ->orWhere('otchestvo', 'like', '%'.$escaped.'%')
+                            ->orWhere('email_polzovatela', 'like', '%'.$escaped.'%');
+                    })
+                    ->orWhereHas('realtor', function ($r) use ($escaped) {
+                        $r->where('familia', 'like', '%'.$escaped.'%')
+                            ->orWhere('imya', 'like', '%'.$escaped.'%')
+                            ->orWhere('email_polzovatela', 'like', '%'.$escaped.'%');
+                    });
+            });
+        }
+
+        $docs = (string) $request->input('docs', 'all');
+        if ($docs === 'ready') {
+            PropertyDocumentRules::applyStaffModerationReadyFilter($qb);
+        } elseif ($docs === 'not_ready') {
+            PropertyDocumentRules::applyStaffModerationNotReadyFilter($qb);
         }
 
         $sort = (string) $request->input('sort', 'newest');
@@ -51,6 +71,8 @@ class ModerationController extends Controller
                 ->orderBy('mod_client.familia', $dir)
                 ->orderBy('mod_client.imya', $dir)
                 ->select('nedvizhimost.*');
+        } elseif ($sort === 'price') {
+            $qb->orderBy('tsena', $dir);
         } else {
             $qb->latest();
         }
@@ -64,7 +86,15 @@ class ModerationController extends Controller
             $moderationDocs[$p->id] = PropertyDocumentRules::moderationCoreDocumentViews($p);
         }
 
-        return view('moderation.index', compact('properties', 'docReadiness', 'moderationDocs', 'q', 'sort', 'dir'));
+        return view('moderation.index', compact(
+            'properties',
+            'docReadiness',
+            'moderationDocs',
+            'q',
+            'sort',
+            'dir',
+            'docs',
+        ));
     }
 
     /**
@@ -74,7 +104,6 @@ class ModerationController extends Controller
     {
         $this->assertPending($property);
 
-        // Риелтор не может одобрить своё же объявление (только чужие)
         $user = Auth::user();
         if ($user->isRealtor() && !$user->isAdmin()) {
             $isOwn = (int) $property->polzovatel_id === (int) $user->id
@@ -84,7 +113,6 @@ class ModerationController extends Controller
             }
         }
 
-        // Повторная проверка текста перед публикацией
         if (TextCensor::propertyFieldErrors($property->nazvanie, $property->opisanie) !== []) {
             return redirect()->route('moderation.index')->withErrors([
                 'error' => 'Нельзя одобрить: в названии или описании есть ненормативная лексика. Отклоните объявление и укажите причину.',
@@ -99,7 +127,7 @@ class ModerationController extends Controller
             );
 
             return redirect()->route('moderation.index')->withErrors([
-                'error' => 'Для одобрения нужны проверенные документы: ' . implode('; ', $need),
+                'error' => 'Для одобрения нужны проверенные документы: '.implode('; ', $need),
             ]);
         }
 
@@ -121,7 +149,6 @@ class ModerationController extends Controller
     {
         $this->assertPending($property);
 
-        // Риелтор не может отклонить своё же объявление
         $user = Auth::user();
         if ($user->isRealtor() && !$user->isAdmin() && (int) $property->polzovatel_id === (int) $user->id) {
             return redirect()->route('moderation.index')->withErrors(['error' => 'Нельзя отклонить собственное объявление']);
@@ -134,7 +161,6 @@ class ModerationController extends Controller
             'prichina_otkaza_mod.min' => 'Причина должна быть не короче 5 символов',
         ]);
 
-        // В причине отказа тоже не должно быть мата
         $reasonErrors = TextCensor::fieldError('prichina_otkaza_mod', $validated['prichina_otkaza_mod']);
         if ($reasonErrors !== []) {
             return redirect()
@@ -156,11 +182,6 @@ class ModerationController extends Controller
         return redirect()->route('moderation.index')->with('success', 'Объявление возвращено автору с указанием причины');
     }
 
-    /**
-     * Убедиться, что объявление действительно «на модерации».
-     *
-     * Иначе ответ 404 — нельзя одобрить или отклонить уже обработанное.
-     */
     private function assertPending(Property $property): void
     {
         $status = $property->status_obyavleniya ?? $property->status;

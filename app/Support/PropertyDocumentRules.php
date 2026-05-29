@@ -4,6 +4,8 @@ namespace App\Support;
 
 use App\Models\Property;
 use App\Models\UserDocument;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * Обязательные документы для публикации объявления по типу объекта и сделке (продажа / аренда).
@@ -334,5 +336,58 @@ class PropertyDocumentRules
         }
 
         return array_values(array_unique($out));
+    }
+
+    /** Объявления с проверенными паспортом и ЕГРН (для фильтра модерации). */
+    public static function applyStaffModerationReadyFilter(Builder $query): void
+    {
+        $query->where(function (Builder $passportQ) {
+            $passportQ->whereExists(function (QueryBuilder $sub) {
+                $sub->selectRaw('1')
+                    ->from('dokumenty_proverki as dp_pass')
+                    ->whereColumn('dp_pass.nedvizhimost_id', 'nedvizhimost.id')
+                    ->whereColumn('dp_pass.polzovatel_id', 'nedvizhimost.polzovatel_id')
+                    ->where('dp_pass.tip', 'passport')
+                    ->where('dp_pass.status', 'verified');
+            })->orWhereExists(function (QueryBuilder $sub) {
+                $sub->selectRaw('1')
+                    ->from('dokumenty_proverki as dp_prof')
+                    ->whereNull('dp_prof.nedvizhimost_id')
+                    ->whereColumn('dp_prof.polzovatel_id', 'nedvizhimost.polzovatel_id')
+                    ->where('dp_prof.tip', 'passport')
+                    ->where('dp_prof.status', 'verified');
+            });
+        })->where(function (Builder $egrnQ) {
+            $egrnQ->where(function (Builder $land) {
+                $land->where('nedvizhimost.tip', 'land')
+                    ->whereExists(function (QueryBuilder $sub) {
+                        $sub->selectRaw('1')
+                            ->from('dokumenty_proverki as dp_egrn_l')
+                            ->whereColumn('dp_egrn_l.nedvizhimost_id', 'nedvizhimost.id')
+                            ->whereColumn('dp_egrn_l.polzovatel_id', 'nedvizhimost.polzovatel_id')
+                            ->where('dp_egrn_l.tip', 'egrn_land')
+                            ->where('dp_egrn_l.status', 'verified');
+                    });
+            })->orWhere(function (Builder $other) {
+                $other->where(function (Builder $notLand) {
+                    $notLand->where('nedvizhimost.tip', '!=', 'land')
+                        ->orWhereNull('nedvizhimost.tip');
+                })->whereExists(function (QueryBuilder $sub) {
+                    $sub->selectRaw('1')
+                        ->from('dokumenty_proverki as dp_egrn')
+                        ->whereColumn('dp_egrn.nedvizhimost_id', 'nedvizhimost.id')
+                        ->whereColumn('dp_egrn.polzovatel_id', 'nedvizhimost.polzovatel_id')
+                        ->where('dp_egrn.tip', 'egrn')
+                        ->where('dp_egrn.status', 'verified');
+                });
+            });
+        });
+    }
+
+    public static function applyStaffModerationNotReadyFilter(Builder $query): void
+    {
+        $query->whereNot(function (Builder $ready) {
+            self::applyStaffModerationReadyFilter($ready);
+        });
     }
 }
