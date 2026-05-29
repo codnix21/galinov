@@ -8,12 +8,14 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class DatabaseBackupService
 {
-    private const DUMP_BINARIES = ['mysqldump', 'mariadb-dump'];
+    /** Alpine/mariadb-client ставит mariadb-dump, не mysqldump. */
+    private const DUMP_BINARIES = ['mariadb-dump', 'mysqldump'];
 
-    private const CLIENT_BINARIES = ['mysql', 'mariadb'];
+    private const CLIENT_BINARIES = ['mariadb', 'mysql'];
 
     public function backupDirectory(): string
     {
@@ -61,13 +63,7 @@ class DatabaseBackupService
         }
 
         $cfg = config('database.connections.'.$driver);
-        $dumpBinary = $this->findExecutable(self::DUMP_BINARIES);
-
-        if ($dumpBinary !== null) {
-            $this->createMysqlBackupViaCli($dumpBinary, $cfg, $path);
-        } else {
-            (new MysqlPhpDumper)->dumpToFile($path, $cfg['database']);
-        }
+        $this->createMysqlBackup($cfg, $path);
 
         return $filename;
     }
@@ -98,18 +94,52 @@ class DatabaseBackupService
         }
 
         $cfg = config('database.connections.'.$driver);
-        $clientBinary = $this->findExecutable(self::CLIENT_BINARIES);
-
-        if ($clientBinary !== null) {
-            $this->restoreMysqlViaCli($clientBinary, $cfg, $path);
-        } else {
-            (new MysqlPhpDumper)->restoreFromFile($path);
-        }
+        $this->restoreMysqlBackup($cfg, $path);
     }
 
     public function resolvePath(string $filename): string
     {
         return $this->backupDirectory().DIRECTORY_SEPARATOR.$filename;
+    }
+
+    /** @param array<string, mixed> $cfg */
+    private function createMysqlBackup(array $cfg, string $path): void
+    {
+        $dumpBinary = $this->findExecutable(self::DUMP_BINARIES);
+
+        if ($dumpBinary !== null) {
+            try {
+                $this->createMysqlBackupViaCli($dumpBinary, $cfg, $path);
+
+                return;
+            } catch (RuntimeException $e) {
+                if (!$this->shouldFallbackToPhp($e)) {
+                    throw $e;
+                }
+            }
+        }
+
+        (new MysqlPhpDumper)->dumpToFile($path, (string) $cfg['database']);
+    }
+
+    /** @param array<string, mixed> $cfg */
+    private function restoreMysqlBackup(array $cfg, string $path): void
+    {
+        $clientBinary = $this->findExecutable(self::CLIENT_BINARIES);
+
+        if ($clientBinary !== null) {
+            try {
+                $this->restoreMysqlViaCli($clientBinary, $cfg, $path);
+
+                return;
+            } catch (RuntimeException $e) {
+                if (!$this->shouldFallbackToPhp($e)) {
+                    throw $e;
+                }
+            }
+        }
+
+        (new MysqlPhpDumper)->restoreFromFile($path);
     }
 
     /** @param array<string, mixed> $cfg */
@@ -131,7 +161,12 @@ class DatabaseBackupService
             throw new RuntimeException($binary.': '.trim($result->errorOutput() ?: $result->output()));
         }
 
-        File::put($path, $result->output());
+        $output = $result->output();
+        if (trim($output) === '') {
+            throw new RuntimeException($binary.': пустой вывод дампа.');
+        }
+
+        File::put($path, $output);
     }
 
     /** @param array<string, mixed> $cfg */
@@ -167,24 +202,63 @@ class DatabaseBackupService
     private function findExecutable(array $names): ?string
     {
         foreach ($names as $name) {
-            if ($this->executableExists($name)) {
-                return $name;
+            $path = $this->resolveExecutablePath($name);
+            if ($path !== null && $this->binaryRespondsToVersion($path)) {
+                return $path;
             }
         }
 
         return null;
     }
 
-    private function executableExists(string $name): bool
+    private function resolveExecutablePath(string $name): ?string
     {
         if (PHP_OS_FAMILY === 'Windows') {
             $result = Process::run(['where', $name]);
+            if (!$result->successful()) {
+                return null;
+            }
 
-            return $result->successful() && trim($result->output()) !== '';
+            $line = trim(strtok($result->output(), "\r\n"));
+            if ($line === '' || !is_file($line)) {
+                return null;
+            }
+
+            return $line;
         }
 
         $result = Process::run(['sh', '-c', 'command -v '.escapeshellarg($name).' 2>/dev/null']);
+        if (!$result->successful()) {
+            return null;
+        }
 
-        return $result->successful() && trim($result->output()) !== '';
+        $path = trim($result->output());
+        if ($path === '' || !is_file($path)) {
+            return null;
+        }
+
+        return $path;
+    }
+
+    private function binaryRespondsToVersion(string $path): bool
+    {
+        try {
+            $result = Process::timeout(10)->run([$path, '--version']);
+
+            return $result->successful();
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    private function shouldFallbackToPhp(RuntimeException $e): bool
+    {
+        $msg = strtolower($e->getMessage());
+
+        return str_contains($msg, 'not found')
+            || str_contains($msg, 'no such file')
+            || str_contains($msg, 'cannot run')
+            || str_contains($msg, 'failed to execute')
+            || str_contains($msg, '127');
     }
 }
