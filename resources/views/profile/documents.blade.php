@@ -57,13 +57,10 @@
         <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">{{ session('success') }}</div>
     @endif
 
-    @php
-        $formErrors = ($errors ?? null) instanceof \Illuminate\Support\ViewErrorBag ? $errors : null;
-    @endphp
-    @if($formErrors && $formErrors->any())
+    @if(isset($errors) && $errors instanceof \Illuminate\Support\ViewErrorBag && $errors->any())
         <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
             <ul class="list-disc list-inside space-y-1">
-                @foreach($formErrors->all() as $error)
+                @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
@@ -129,6 +126,11 @@
                     @if($isRejected && $latest?->kommentariy_mod)
                         <p class="text-xs text-red-700 mt-1">{{ $latest->kommentariy_mod }}</p>
                     @endif
+                    @include('partials.document-view-link', [
+                        'viewUrl' => $latest?->view_url,
+                        'egrnJsonOnly' => false,
+                        'hasPathButMissing' => $latest && $latest->put_fajla && !$latest->view_url,
+                    ])
                 </div>
             </div>
 

@@ -68,13 +68,10 @@
         <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">{{ session('success') }}</div>
     @endif
 
-    @php
-        $formErrors = ($errors ?? null) instanceof \Illuminate\Support\ViewErrorBag ? $errors : null;
-    @endphp
-    @if($formErrors && $formErrors->any())
+    @if(isset($errors) && $errors instanceof \Illuminate\Support\ViewErrorBag && $errors->any())
         <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
             <ul class="list-disc list-inside space-y-1">
-                @foreach($formErrors->all() as $error)
+                @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
@@ -111,6 +108,12 @@
                     $prevLabel = \App\Support\PropertyDocumentRules::previousStepLabel($property, $tip);
                     $hasPropertyFile = (bool) ($documents->get($tip)?->first());
                     $okFromProfile = $tip === 'passport' && !empty($profilePassportVerified) && !$hasPropertyFile;
+                    $stepDoc = $documents->get($tip)?->first()
+                        ?? ($okFromProfile ? $profilePassportDocument : null);
+                    $stepViewUrl = $stepDoc?->view_url;
+                    $stepEgrnJsonOnly = $stepDoc
+                        && \App\Support\DocumentStorage::isJsonRegistryFile($stepDoc->put_fajla)
+                        && !$stepViewUrl;
                     $showForm = $canUploadStep && !$checking && !$okFromProfile
                         && (($canEditDocuments ?? false) || (!$ok && $isCurrent));
                 @endphp
@@ -135,16 +138,6 @@
                                         <span class="text-slate-500">· по профилю</span>
                                     @endif
                                 </p>
-                                @php
-                                    $viewDoc = $documents->get($tip)?->first()
-                                        ?? ($tip === 'passport' && $okFromProfile ? $profilePassportDocument : null);
-                                    $viewUrl = $viewDoc?->view_url;
-                                @endphp
-                                @if(($canViewFiles ?? false) && $viewUrl)
-                                    <a href="{{ $viewUrl }}" target="_blank" rel="noopener" class="text-xs text-brand-700 underline mt-1 inline-block">Открыть файл</a>
-                                @elseif(($canViewFiles ?? false) && $viewDoc && \App\Support\DocumentStorage::isJsonRegistryFile($viewDoc->put_fajla))
-                                    <span class="text-xs text-slate-500 mt-1 inline-block">Подтверждено по кадастровому номеру</span>
-                                @endif
                             @elseif($checking)
                                 <p class="text-xs text-slate-500 mt-0.5">Идёт автопроверка…</p>
                             @elseif($rejected)
@@ -156,6 +149,11 @@
                             @else
                                 <p class="text-xs text-slate-500 mt-0.5">Не загружен</p>
                             @endif
+                            @include('partials.document-view-link', [
+                                'viewUrl' => $stepViewUrl,
+                                'egrnJsonOnly' => $stepEgrnJsonOnly,
+                                'hasPathButMissing' => $stepDoc && $stepDoc->put_fajla && !$stepViewUrl && !$stepEgrnJsonOnly,
+                            ])
                         </div>
                     </div>
 

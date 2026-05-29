@@ -55,7 +55,6 @@ class PropertyDocumentController extends Controller
 
         $isOwner = $this->isOwner($request, $property);
         $canEditDocuments = $isOwner && PropertyDocumentRules::ownerCanEditDocuments($property);
-        $canViewFiles = $request->user()->isStaff() && !$isOwner;
         $verifiedCount = count($docStatus['verified']);
         $totalRequired = count($required);
 
@@ -68,7 +67,6 @@ class PropertyDocumentController extends Controller
             'profilePassportVerified' => in_array('passport', $profileVerified, true),
             'profileInnVerified' => in_array('inn', $profileVerified, true),
             'profilePassportDocument' => $profilePassportDocument,
-            'canViewFiles' => $canViewFiles,
             'ready' => PropertyDocumentRules::isReadyForPublication($property),
             'canUpload' => $isOwner,
             'canEditDocuments' => $canEditDocuments,

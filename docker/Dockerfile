@@ -36,6 +36,7 @@ RUN set -ex \
     && apk update \
     && apk add --no-cache \
         nginx \
+        mariadb-client \
         freetype-dev \
         libjpeg-turbo-dev \
         libpng-dev \

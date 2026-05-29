@@ -277,7 +277,7 @@ class AdminController extends Controller
 
         return view('admin.properties.index', [
             'properties' => $properties,
-            'propertyStatuses' => \App\Models\PropertyStatus::orderBy('id')->get(),
+            'propertyStatuses' => PropertyStatus::orderBy('id')->get(),
         ]);
     }
 
@@ -561,7 +561,7 @@ class AdminController extends Controller
 
         return view('admin.contracts.index', [
             'contracts' => $contracts,
-            'contractStatuses' => \App\Models\ContractStatus::orderBy('id')->get(),
+            'contractStatuses' => ContractStatus::orderBy('id')->get(),
         ]);
     }
 

@@ -16,7 +16,10 @@
             @csrf
             <button type="submit" class="btn-primary">Создать backup</button>
         </form>
-        <p class="text-sm text-gray-500 mt-3">Для MySQL нужен mysqldump в контейнере PHP. SQLite копируется файлом.</p>
+        <p class="text-sm text-gray-500 mt-3">
+            MySQL: через <code class="text-xs">mysqldump</code> (если установлен) или встроенный PHP-дамп.
+            SQLite копируется файлом.
+        </p>
     </div>
 
     <div class="card p-6">

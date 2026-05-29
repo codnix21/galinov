@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\MysqlPhpDumper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
@@ -10,6 +11,10 @@ use RuntimeException;
 
 class DatabaseBackupService
 {
+    private const DUMP_BINARIES = ['mysqldump', 'mariadb-dump'];
+
+    private const CLIENT_BINARIES = ['mysql', 'mariadb'];
+
     public function backupDirectory(): string
     {
         $dir = storage_path('app/backups');
@@ -56,28 +61,13 @@ class DatabaseBackupService
         }
 
         $cfg = config('database.connections.'.$driver);
-        $command = [
-            'mysqldump',
-            '--host='.$cfg['host'],
-            '--port='.$cfg['port'],
-            '--user='.$cfg['username'],
-            '--single-transaction',
-            '--routines',
-            '--triggers',
-            $cfg['database'],
-        ];
+        $dumpBinary = $this->findExecutable(self::DUMP_BINARIES);
 
-        $env = [];
-        if (!empty($cfg['password'])) {
-            $env['MYSQL_PWD'] = $cfg['password'];
+        if ($dumpBinary !== null) {
+            $this->createMysqlBackupViaCli($dumpBinary, $cfg, $path);
+        } else {
+            (new MysqlPhpDumper)->dumpToFile($path, $cfg['database']);
         }
-
-        $result = Process::timeout(300)->env($env)->run($command);
-        if (!$result->successful()) {
-            throw new RuntimeException('mysqldump: '.trim($result->errorOutput() ?: $result->output()));
-        }
-
-        File::put($path, $result->output());
 
         return $filename;
     }
@@ -108,27 +98,93 @@ class DatabaseBackupService
         }
 
         $cfg = config('database.connections.'.$driver);
-        $command = [
-            'mysql',
-            '--host='.$cfg['host'],
-            '--port='.$cfg['port'],
-            '--user='.$cfg['username'],
-            $cfg['database'],
-        ];
-        $env = [];
-        if (!empty($cfg['password'])) {
-            $env['MYSQL_PWD'] = $cfg['password'];
-        }
+        $clientBinary = $this->findExecutable(self::CLIENT_BINARIES);
 
-        $sql = File::get($path);
-        $result = Process::timeout(600)->env($env)->input($sql)->run($command);
-        if (!$result->successful()) {
-            throw new RuntimeException('mysql restore: '.trim($result->errorOutput() ?: $result->output()));
+        if ($clientBinary !== null) {
+            $this->restoreMysqlViaCli($clientBinary, $cfg, $path);
+        } else {
+            (new MysqlPhpDumper)->restoreFromFile($path);
         }
     }
 
     public function resolvePath(string $filename): string
     {
         return $this->backupDirectory().DIRECTORY_SEPARATOR.$filename;
+    }
+
+    /** @param array<string, mixed> $cfg */
+    private function createMysqlBackupViaCli(string $binary, array $cfg, string $path): void
+    {
+        $command = [
+            $binary,
+            '--host='.$cfg['host'],
+            '--port='.$cfg['port'],
+            '--user='.$cfg['username'],
+            '--single-transaction',
+            '--routines',
+            '--triggers',
+            $cfg['database'],
+        ];
+
+        $result = Process::timeout(300)->env($this->mysqlEnv($cfg))->run($command);
+        if (!$result->successful()) {
+            throw new RuntimeException($binary.': '.trim($result->errorOutput() ?: $result->output()));
+        }
+
+        File::put($path, $result->output());
+    }
+
+    /** @param array<string, mixed> $cfg */
+    private function restoreMysqlViaCli(string $binary, array $cfg, string $path): void
+    {
+        $command = [
+            $binary,
+            '--host='.$cfg['host'],
+            '--port='.$cfg['port'],
+            '--user='.$cfg['username'],
+            $cfg['database'],
+        ];
+
+        $sql = File::get($path);
+        $result = Process::timeout(600)->env($this->mysqlEnv($cfg))->input($sql)->run($command);
+        if (!$result->successful()) {
+            throw new RuntimeException($binary.' restore: '.trim($result->errorOutput() ?: $result->output()));
+        }
+    }
+
+    /** @param array<string, mixed> $cfg */
+    private function mysqlEnv(array $cfg): array
+    {
+        $env = [];
+        if (!empty($cfg['password'])) {
+            $env['MYSQL_PWD'] = $cfg['password'];
+        }
+
+        return $env;
+    }
+
+    /** @param list<string> $names */
+    private function findExecutable(array $names): ?string
+    {
+        foreach ($names as $name) {
+            if ($this->executableExists($name)) {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    private function executableExists(string $name): bool
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $result = Process::run(['where', $name]);
+
+            return $result->successful() && trim($result->output()) !== '';
+        }
+
+        $result = Process::run(['sh', '-c', 'command -v '.escapeshellarg($name).' 2>/dev/null']);
+
+        return $result->successful() && trim($result->output()) !== '';
     }
 }
