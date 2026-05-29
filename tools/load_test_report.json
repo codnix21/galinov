@@ -1,0 +1,120 @@
+{
+    "timestamp": "2026-05-21T14:35:22+00:00",
+    "base_url": "http:\/\/127.0.0.1:8000",
+    "concurrency": 25,
+    "requests_per_endpoint": 100,
+    "results": [
+        {
+            "count": 100,
+            "min": 3685.9,
+            "max": 3802.68,
+            "avg": 3741.45,
+            "p50": 3738.64,
+            "p95": 3802.66,
+            "p99": 3802.67,
+            "endpoint": "home",
+            "path": "\/",
+            "errors": 0,
+            "http_codes": {
+                "200": 100
+            },
+            "success_rate": 100
+        },
+        {
+            "count": 100,
+            "min": 4303.61,
+            "max": 5259.66,
+            "avg": 4828.65,
+            "p50": 4875.66,
+            "p95": 5259.66,
+            "p99": 5259.66,
+            "endpoint": "properties_index",
+            "path": "\/properties",
+            "errors": 0,
+            "http_codes": {
+                "200": 100
+            },
+            "success_rate": 100
+        },
+        {
+            "count": 100,
+            "min": 4255.9,
+            "max": 4356.42,
+            "avg": 4307.57,
+            "p50": 4308.98,
+            "p95": 4356.41,
+            "p99": 4356.42,
+            "endpoint": "properties_filtered",
+            "path": "\/properties?type=apartment&operation=sale&min_price=1000000",
+            "errors": 0,
+            "http_codes": {
+                "200": 100
+            },
+            "success_rate": 100
+        },
+        {
+            "count": 100,
+            "min": 3347.02,
+            "max": 4383.2,
+            "avg": 3715.92,
+            "p50": 3566.72,
+            "p95": 4383.18,
+            "p99": 4383.2,
+            "endpoint": "login",
+            "path": "\/login",
+            "errors": 0,
+            "http_codes": {
+                "200": 100
+            },
+            "success_rate": 100
+        },
+        {
+            "count": 100,
+            "min": 3703.13,
+            "max": 3979.82,
+            "avg": 3846.05,
+            "p50": 3850.62,
+            "p95": 3979.82,
+            "p99": 3979.82,
+            "endpoint": "about",
+            "path": "\/about-contacts",
+            "errors": 0,
+            "http_codes": {
+                "200": 100
+            },
+            "success_rate": 100
+        },
+        {
+            "count": 100,
+            "min": 3694.86,
+            "max": 3864.64,
+            "avg": 3796.45,
+            "p50": 3813.14,
+            "p95": 3864.64,
+            "p99": 3864.64,
+            "endpoint": "help",
+            "path": "\/help",
+            "errors": 0,
+            "http_codes": {
+                "200": 100
+            },
+            "success_rate": 100
+        },
+        {
+            "count": 100,
+            "min": 3600.53,
+            "max": 3809.97,
+            "avg": 3728.15,
+            "p50": 3751.04,
+            "p95": 3809.96,
+            "p99": 3809.97,
+            "endpoint": "mortgage",
+            "path": "\/mortgage-calculator",
+            "errors": 0,
+            "http_codes": {
+                "200": 100
+            },
+            "success_rate": 100
+        }
+    ]
+}

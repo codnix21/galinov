@@ -1,0 +1,361 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        color-scheme: light;
+    }
+
+    body {
+        @apply antialiased bg-slate-50 text-slate-800;
+        font-feature-settings: 'kern' 1;
+        text-rendering: optimizeLegibility;
+    }
+
+    ::selection {
+        @apply bg-brand-100 text-brand-900;
+    }
+}
+
+@layer components {
+    /* Кнопки */
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium;
+        @apply border border-slate-200 bg-white text-slate-700 shadow-sm;
+        @apply transition-all duration-200 ease-out;
+        @apply hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 hover:shadow;
+        @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50;
+        @apply active:scale-[0.98];
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium;
+        @apply border border-transparent bg-brand-600 text-white shadow-md shadow-brand-600/20;
+        @apply transition-all duration-200 ease-out;
+        @apply hover:bg-brand-700 hover:text-white hover:shadow-lg hover:shadow-brand-600/25;
+        @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50;
+        @apply active:scale-[0.98];
+    }
+
+    .btn-secondary {
+        @apply border-slate-200 bg-slate-100/80 text-slate-800;
+        @apply hover:border-slate-300 hover:bg-slate-100;
+    }
+
+    /* Карточки */
+    .card {
+        @apply rounded-2xl border border-slate-200/90 bg-white shadow-card;
+        @apply transition-shadow duration-200 ease-out;
+        @apply hover:shadow-card-hover;
+    }
+
+    /* Формы */
+    .form-input {
+        @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-slate-800 shadow-sm;
+        @apply transition-colors duration-150;
+        @apply placeholder:text-slate-400;
+        @apply focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25;
+    }
+
+    .form-input:focus {
+        @apply bg-white;
+    }
+
+    .form-label {
+        @apply mb-2 block text-sm font-medium text-slate-700;
+    }
+
+    /* Навигация */
+    .nav-link--compact {
+        @apply px-2.5 py-1.5 text-xs sm:text-sm;
+    }
+
+    .nav-link--icon {
+        @apply px-2 py-1.5 text-base leading-none;
+    }
+
+    .nav-link--logout {
+        @apply border-red-200/80 text-red-800 hover:bg-red-50;
+    }
+
+    .nav-dropdown {
+        @apply relative;
+    }
+
+    .nav-dropdown-trigger {
+        @apply list-none cursor-pointer;
+    }
+
+    .nav-dropdown-trigger::-webkit-details-marker {
+        display: none;
+    }
+
+    .nav-dropdown-menu {
+        @apply absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-xl border border-slate-200 bg-white py-1 shadow-lg;
+    }
+
+    .nav-dropdown-item {
+        @apply block px-3 py-2 text-sm text-slate-700 hover:bg-brand-50 hover:text-brand-900;
+    }
+
+    .header-user-chip {
+        @apply flex max-w-[10.5rem] flex-col gap-0 rounded-lg border border-slate-200/90 bg-slate-50/80 px-2 py-1 transition-colors hover:border-brand-200 hover:bg-brand-50/60 xl:max-w-[12rem];
+    }
+
+    .header-user-chip__name {
+        @apply truncate text-xs font-medium leading-tight text-slate-800;
+    }
+
+    .header-user-chip__role {
+        @apply text-[10px] font-medium uppercase tracking-wide text-slate-500;
+    }
+
+    .nav-link {
+        @apply rounded-xl border border-transparent px-3.5 py-2 text-sm font-medium text-slate-600;
+        @apply transition-colors duration-150 ease-out;
+        @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+    }
+
+    /* Колокольчик: summary без стрелки браузера */
+    .notifications-bell > summary {
+        list-style: none;
+    }
+
+    .notifications-bell > summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .notifications-bell[open] > summary {
+        @apply border-brand-200 bg-brand-50 text-brand-800;
+    }
+
+    .favorite-btn {
+        @apply inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-xl font-bold shadow-md;
+        @apply transition-transform duration-150 hover:scale-110;
+    }
+
+    .favorite-btn--active {
+        @apply border-amber-400 bg-amber-50 text-amber-500;
+    }
+
+    .favorite-btn--inactive {
+        @apply text-slate-600 hover:border-amber-400 hover:bg-amber-50 hover:text-amber-500;
+    }
+
+    .confirm-modal::backdrop {
+        @apply bg-slate-900/40;
+    }
+
+    @media (hover: hover) {
+        .nav-link:hover {
+            @apply bg-brand-50 text-brand-800;
+        }
+    }
+
+    @media (hover: none) {
+        .nav-link:active {
+            @apply bg-brand-50 text-brand-800;
+        }
+    }
+
+    .mobile-nav-toggle {
+        @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700;
+        @apply transition-colors duration-150;
+        @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35;
+    }
+
+    @media (hover: hover) {
+        .mobile-nav-toggle:hover {
+            @apply border-slate-300 bg-slate-50;
+        }
+    }
+
+    .mobile-nav-backdrop {
+        @apply fixed inset-0 z-40 bg-slate-900/25;
+    }
+
+    .mobile-nav-panel {
+        @apply absolute left-0 right-0 top-full z-50 max-h-[min(85vh,calc(100dvh-4rem))] overflow-y-auto overscroll-contain;
+        @apply border-b border-slate-200 bg-white shadow-lg;
+    }
+
+    .mobile-nav-link {
+        @apply block rounded-xl px-3 py-3 text-base font-medium text-slate-800;
+        @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 focus-visible:ring-inset;
+    }
+
+    @media (hover: hover) {
+        .mobile-nav-link:hover {
+            @apply bg-brand-50 text-brand-800;
+        }
+    }
+
+    @media (hover: none) {
+        .mobile-nav-link:active {
+            @apply bg-brand-50 text-brand-800;
+        }
+    }
+
+    .mobile-nav-link--accent {
+        @apply text-brand-800;
+    }
+
+    .site-brand {
+        @apply inline-block max-w-[calc(100vw-5.5rem)] sm:max-w-none;
+    }
+
+    .mobile-nav-logout {
+        @apply flex w-full min-h-[44px] items-center justify-center rounded-xl border border-red-200 bg-white px-4 py-3 text-base font-medium text-red-800;
+        @apply transition-colors duration-150;
+        @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40;
+    }
+
+    @media (hover: hover) {
+        .mobile-nav-logout:hover {
+            @apply bg-red-50;
+        }
+    }
+
+    /* Бейджи */
+    .badge {
+        @apply inline-block rounded-full border border-slate-200/90 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600;
+    }
+
+    /* Разделители */
+    .divider {
+        @apply border-t border-slate-200;
+    }
+
+    /* Контейнеры */
+    .container-custom {
+        @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    .fio-search-select {
+        @apply relative;
+    }
+
+    /* Акцентные тени для карточек (опционально в разметке) */
+    .card-shadow {
+        box-shadow:
+            0 1px 2px rgba(15, 23, 42, 0.05),
+            0 6px 20px rgba(13, 148, 136, 0.08);
+    }
+
+    .card-shadow-hover {
+        box-shadow:
+            0 2px 4px rgba(15, 23, 42, 0.06),
+            0 10px 28px rgba(13, 148, 136, 0.12);
+    }
+}
+
+@layer utilities {
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .text-balance {
+        text-wrap: balance;
+    }
+
+    .line-through-black {
+        @apply relative;
+    }
+
+    .line-through-black::after {
+        content: '';
+        @apply absolute left-0 right-0 top-1/2 h-px bg-slate-300;
+    }
+
+    .safe-top {
+        padding-top: env(safe-area-inset-top, 0);
+    }
+
+    .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    .table-responsive {
+        @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0;
+    }
+
+    .touch-target {
+        @apply min-h-[44px] min-w-[44px];
+    }
+
+    /* Улучшение форм на узких экранах */
+    @media (max-width: 640px) {
+        .form-input,
+        .btn,
+        .btn-primary {
+            @apply text-base;
+        }
+
+        h1 {
+            @apply text-2xl;
+        }
+    }
+
+    /* Tom Select — поиск в выпадающих списках */
+    .ts-wrapper {
+        @apply w-full;
+    }
+
+    .ts-wrapper.single .ts-control,
+    .ts-wrapper.multi .ts-control {
+        @apply rounded-xl border border-slate-200 bg-white text-sm text-slate-800 shadow-sm min-h-[42px];
+    }
+
+    .ts-wrapper.focus .ts-control {
+        @apply border-brand-500 ring-2 ring-brand-500/20;
+    }
+
+    .ts-dropdown {
+        @apply rounded-xl border border-slate-200 shadow-lg text-sm;
+    }
+
+    .ts-dropdown .option {
+        @apply py-2 px-3;
+    }
+
+    .ts-dropdown .active {
+        @apply bg-brand-50 text-brand-900;
+    }
+
+    .ts-wrapper.multi .ts-control > .item {
+        @apply rounded-lg bg-brand-100 text-brand-900 border-0;
+    }
+
+    /* Ипотечный калькулятор */
+    .mc-range {
+        @apply h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-brand-600;
+    }
+
+    .mc-range::-webkit-slider-thumb {
+        @apply h-5 w-5 appearance-none rounded-full bg-brand-600 shadow-md ring-2 ring-white;
+    }
+
+    .mc-bank-chip {
+        @apply inline-flex flex-col items-start rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-left text-sm transition-all hover:border-brand-300 hover:bg-brand-50/50;
+    }
+
+    .mc-bank-chip--active {
+        @apply border-brand-600 bg-brand-50 shadow-sm ring-1 ring-brand-200;
+    }
+
+    .mc-type-card {
+        @apply flex cursor-pointer flex-col rounded-xl border-2 border-slate-200 bg-white p-3 transition-all hover:border-slate-300;
+    }
+}

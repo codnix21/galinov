@@ -1,0 +1,75 @@
+# Изолированный стек «Агентство недвижимости» (galinov_*).
+# Порты на хосте: HTTP 127.0.0.1:8083 (kanka занимает 8082).
+# MySQL только во внутренней сети — без публикации порта.
+
+name: galinov
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: galinov-app:latest
+    container_name: galinov_app
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8083:80"
+    volumes:
+      - galinov_storage:/var/www/html/storage
+    networks:
+      - galinov_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  scheduler:
+    image: galinov-app:latest
+    container_name: galinov_scheduler
+    restart: unless-stopped
+    env_file: .env
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - galinov_storage:/var/www/html/storage
+    networks:
+      - galinov_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    container_name: galinov_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-galinov}
+      MYSQL_USER: ${DB_USERNAME:-galinov}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    # На VPS с 1–2 ГБ RAM снижаем потребление (иначе OOM → unhealthy)
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=128M
+      - --performance-schema=OFF
+    volumes:
+      - galinov_db:/var/lib/mysql
+    networks:
+      - galinov_net
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+networks:
+  galinov_net:
+    name: galinov_net
+    driver: bridge
+
+volumes:
+  galinov_db:
+    name: galinov_db
+  galinov_storage:
+    name: galinov_storage
