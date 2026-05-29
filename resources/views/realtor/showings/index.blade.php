@@ -58,18 +58,35 @@
         <h2 class="font-bold mb-4">Запланировать показ</h2>
         <form method="POST" action="{{ route('realtor.showings.store') }}" class="space-y-3">
             @csrf
-            <select name="klient_id" class="form-input" required>
-                <option value="">Клиент</option>
-                @foreach($clientOptions as $rc)
-                    <option value="{{ $rc->klient_id }}">{{ trim($rc->client->familia.' '.$rc->client->imya) }}</option>
-                @endforeach
-            </select>
-            <input type="number" name="nedvizhimost_id" class="form-input" placeholder="ID объекта" required>
-            <input type="datetime-local" name="naznacheno_na" class="form-input" required>
-            <textarea name="zametki" class="form-input" rows="2" placeholder="Комментарий"></textarea>
+            <div>
+                <label class="form-label">Клиент</label>
+                <select name="klient_id" class="form-input" required>
+                    <option value="">— выберите клиента —</option>
+                    @foreach($clientOptions as $rc)
+                        <option value="{{ $rc->klient_id }}" @selected((int) old('klient_id', $preselectedClientId ?? 0) === (int) $rc->klient_id)>
+                            {{ trim($rc->client->familia.' '.$rc->client->imya) }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Объект</label>
+                <select name="nedvizhimost_id" class="form-input" required>
+                    <option value="">— выберите объявление —</option>
+                    @foreach($propertyOptions as $p)
+                        <option value="{{ $p->id }}" @selected((int) old('nedvizhimost_id') === (int) $p->id)>
+                            {{ $p->nazvanie }}@if($p->adres_ulitsy) — {{ $p->adres_ulitsy }}@endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Дата и время</label>
+                <input type="datetime-local" name="naznacheno_na" class="form-input" value="{{ old('naznacheno_na') }}" required>
+            </div>
+            <textarea name="zametki" class="form-input" rows="2" placeholder="Комментарий">{{ old('zametki') }}</textarea>
             <button type="submit" class="btn-primary w-full">Создать</button>
         </form>
-        <p class="text-xs text-gray-500 mt-2">ID объекта — из URL карточки объявления</p>
     </div>
 </div>
 @endsection

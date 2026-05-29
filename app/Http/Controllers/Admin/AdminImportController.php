@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\PropertyImportService;
+use App\Support\PropertyImportColumns;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,15 +17,27 @@ class AdminImportController extends Controller
     {
         $this->assertAdmin();
 
-        return view('admin.import.index');
+        return view('admin.import.index', [
+            'columns' => PropertyImportColumns::definitions(),
+        ]);
     }
 
     public function template(): StreamedResponse
     {
         $this->assertAdmin();
 
-        $headers = ['nazvanie', 'tsena', 'gorod', 'adres', 'tip', 'operatsiya', 'status_kod', 'email_vladelca', 'opisanie'];
-        $sample = ['Квартира 2к', '5500000', 'Иркутск', 'ул. Ленина, 1', 'apartment', 'sale', 'draft', '', 'Импортировано из шаблона'];
+        $headers = PropertyImportColumns::russianHeaders();
+        $sample = [
+            'Квартира 2к, 54 м²',
+            '5500000',
+            'Иркутск',
+            'ул. Ленина, д. 1',
+            'apartment',
+            'sale',
+            'draft',
+            '',
+            'Импортировано из шаблона. Коммунальные отдельно.',
+        ];
 
         return response()->streamDownload(function () use ($headers, $sample) {
             $out = fopen('php://output', 'w');

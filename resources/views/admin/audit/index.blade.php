@@ -61,12 +61,9 @@
     <div class="space-y-4">
         @foreach($logs as $zapis)
             @php
-                $det = is_array($zapis->detalizatsiya) ? $zapis->detalizatsiya : [];
-                $izmeneniyaRaw = collect($det)->filter(fn ($st) => isset($st['polya']))->map(fn ($st) => [
-                    'polya' => $st['polya'],
-                    'bilo' => $st['bilo'] ?? null,
-                    'stalo' => $st['stalo'] ?? null,
-                ])->values()->all();
+                $izmeneniyaRaw = AuditJournalDisplay::razobratDetalizatsiyu(
+                    is_array($zapis->detalizatsiya) ? $zapis->detalizatsiya : null
+                );
                 $tablitsa = AuditJournalDisplay::podgotovitStrokiTablitsy($izmeneniyaRaw);
                 $tip = AuditJournalDisplay::nadpisTipaObyekta($zapis->obyekt_type);
                 $objLabel = match ($zapis->obyekt_type) {

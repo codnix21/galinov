@@ -120,6 +120,8 @@
             </div>
         </div>
 
+        @include('properties.partials.house-fields')
+
         <div class="grid grid-cols-2 gap-6 mb-6">
             <div>
                 <label for="polzovatel_id" class="form-label">Риэлтор *</label>

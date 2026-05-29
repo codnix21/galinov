@@ -5,8 +5,8 @@ namespace App\Services;
 use App\Models\City;
 use App\Models\Property;
 use App\Models\PropertyStatus;
-use App\Models\Role;
 use App\Models\User;
+use App\Support\PropertyImportColumns;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use OpenSpout\Reader\CSV\Reader as CsvReader;
@@ -30,11 +30,16 @@ class PropertyImportService
             throw new \InvalidArgumentException('Файл пуст или не содержит данных.');
         }
 
-        $header = array_map(fn ($h) => $this->normalizeHeader((string) $h), array_shift($rows));
-        $required = ['nazvanie', 'tsena'];
-        foreach ($required as $col) {
-            if (!in_array($col, $header, true)) {
-                throw new \InvalidArgumentException('В файле должны быть колонки: nazvanie, tsena (и опционально gorod, adres, tip, operatsiya, status_kod, email_vladelca).');
+        $header = array_map(
+            fn ($h) => PropertyImportColumns::normalizeHeader((string) $h),
+            array_shift($rows)
+        );
+        foreach (PropertyImportColumns::requiredKeys() as $col) {
+            if (! in_array($col, $header, true)) {
+                throw new \InvalidArgumentException(
+                    'В первой строке файла должны быть колонки «Название» и «Цена» (или nazvanie, tsena). '
+                    .'Скачайте шаблон CSV на этой странице.'
+                );
             }
         }
 
@@ -71,7 +76,7 @@ class PropertyImportService
         $title = trim((string) ($data['nazvanie'] ?? ''));
         $price = (float) str_replace([' ', ','], ['', '.'], (string) ($data['tsena'] ?? '0'));
         if ($title === '' || $price <= 0) {
-            throw new \InvalidArgumentException('Некорректные nazvanie или tsena.');
+            throw new \InvalidArgumentException('Некорректные «Название» или «Цена».');
         }
 
         $owner = $defaultOwner;
@@ -89,13 +94,17 @@ class PropertyImportService
             $cityId = $city->id;
         }
 
-        $statusKod = trim((string) ($data['status_kod'] ?? 'draft'));
+        $statusRaw = mb_strtolower(trim((string) ($data['status_kod'] ?? 'draft')));
+        $statusKod = PropertyImportColumns::statusAliases()[$statusRaw] ?? $statusRaw;
         $statusId = PropertyStatus::idFor($statusKod) ?? PropertyStatus::idFor('draft');
 
-        $tip = in_array($data['tip'] ?? '', ['apartment', 'house', 'commercial', 'land'], true)
-            ? $data['tip'] : 'apartment';
-        $operatsiya = in_array($data['operatsiya'] ?? '', ['sale', 'rent'], true)
-            ? $data['operatsiya'] : 'sale';
+        $tipRaw = mb_strtolower(trim((string) ($data['tip'] ?? 'apartment')));
+        $tip = PropertyImportColumns::tipAliases()[$tipRaw]
+            ?? (in_array($tipRaw, ['apartment', 'house', 'commercial', 'land'], true) ? $tipRaw : 'apartment');
+
+        $opRaw = mb_strtolower(trim((string) ($data['operatsiya'] ?? 'sale')));
+        $operatsiya = PropertyImportColumns::operatsiyaAliases()[$opRaw]
+            ?? (in_array($opRaw, ['sale', 'rent'], true) ? $opRaw : 'sale');
 
         DB::transaction(function () use ($title, $price, $owner, $cityId, $statusId, $tip, $operatsiya, $data) {
             Property::create([
@@ -110,11 +119,6 @@ class PropertyImportService
                 'status_obyavleniya_id' => $statusId,
             ]);
         });
-    }
-
-    private function normalizeHeader(string $h): string
-    {
-        return strtolower(trim(preg_replace('/\s+/', '_', $h)));
     }
 
     /** @return list<list<string>> */

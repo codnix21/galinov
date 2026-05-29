@@ -12,19 +12,13 @@
     <div class="space-y-4">
         @foreach($istoriyaZhurnala as $zapis)
             @php
-                $det = is_array($zapis->detalizatsiya) ? $zapis->detalizatsiya : [];
-                $izmeneniyaRaw = collect($det)->filter(function ($st) {
-                    if (!isset($st['polya'])) {
-                        return false;
-                    }
+                $izmeneniyaRaw = collect(AuditJournalDisplay::razobratDetalizatsiyu(
+                    is_array($zapis->detalizatsiya) ? $zapis->detalizatsiya : null
+                ))->filter(function ($st) {
                     $b = (string) ($st['bilo'] ?? '');
                     $s = (string) ($st['stalo'] ?? '');
                     return $b !== $s;
-                })->map(fn ($st) => [
-                    'polya' => $st['polya'],
-                    'bilo' => $st['bilo'] ?? null,
-                    'stalo' => $st['stalo'] ?? null,
-                ])->values()->all();
+                })->values()->all();
                 $tablitsa = AuditJournalDisplay::podgotovitStrokiTablitsy($izmeneniyaRaw);
                 $pokazatTablitsu = !in_array($zapis->deystvie, $sozdanieBezTablitsy, true) && count($tablitsa) > 0;
             @endphp

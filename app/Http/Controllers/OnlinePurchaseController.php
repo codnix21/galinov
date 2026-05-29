@@ -164,7 +164,7 @@ class OnlinePurchaseController extends Controller
     private function authorizeBuyer(Contract $contract): void
     {
         $user = request()->user();
-        $buyerId = (int) ($contract->pokupatel_id ?? $contract->klient_id ?? 0);
+        $buyerId = (int) ($contract->pokupatel_id ?? 0);
 
         if ((int) $user->id !== $buyerId && !$user->isAdmin()) {
             abort(403);

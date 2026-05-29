@@ -120,6 +120,8 @@
             </div>
         </div>
 
+        @include('properties.partials.house-fields', ['property' => $property])
+
         <div class="grid grid-cols-2 gap-6 mb-6">
             <div>
                 <label for="user_id" class="form-label">Риэлтор *</label>
@@ -191,6 +193,8 @@
             </button>
         </div>
     </form>
+
+    @include('properties.partials.property-owners-form', ['property' => $property])
 
     <div class="mt-10 w-full min-w-0">
         @include('partials.property-zhurnal')

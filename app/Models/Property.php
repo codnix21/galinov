@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Объявление о недвижимости (квартира, дом и т.д.).
@@ -41,7 +42,26 @@ class Property extends Model
         'status_obyavleniya',
         'status_obyavleniya_id',
         'prichina_otkaza_mod',
+        'tip_doma',
+        'est_tsokol',
+        'ploshchad_uchastka',
+        'garazh',
+        'parking',
+        'internet',
+        'otoplenie',
+        'kanalizatsiya',
+        'vodosnabzhenie',
+        'gaz',
+        'banya',
+        'bassein',
+        'okhrana',
+        'zabor',
     ];
+
+    public function isHouse(): bool
+    {
+        return ($this->tip ?? $this->attributes['tip'] ?? null) === 'house';
+    }
 
     /**
      * Ниже — «геттеры» и «сеттеры» для английских имён полей (title, price…).
@@ -262,10 +282,23 @@ class Property extends Model
     /** Преобразование типов при чтении из БД */
     protected $casts = [
         'tsena' => 'decimal:2',
+        'ploshchad_uchastka' => 'decimal:2',
         'geo_shirota' => 'float',
         'geo_dolgota' => 'float',
         'sozdano_at' => 'datetime',
         'obnovleno_at' => 'datetime',
+        'est_tsokol' => 'boolean',
+        'garazh' => 'boolean',
+        'parking' => 'boolean',
+        'internet' => 'boolean',
+        'otoplenie' => 'boolean',
+        'kanalizatsiya' => 'boolean',
+        'vodosnabzhenie' => 'boolean',
+        'gaz' => 'boolean',
+        'banya' => 'boolean',
+        'bassein' => 'boolean',
+        'okhrana' => 'boolean',
+        'zabor' => 'boolean',
     ];
     
     /** Имена колонок «создано» и «обновлено» вместо created_at / updated_at */
@@ -282,6 +315,12 @@ class Property extends Model
     public function realtor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'rieltor_id');
+    }
+
+    /** Собственники с долями в праве */
+    public function owners(): HasMany
+    {
+        return $this->hasMany(PropertyOwner::class, 'nedvizhimost_id')->orderBy('poryadok');
     }
 
     /** Город из справочника goroda (по gorod_id) */

@@ -60,6 +60,9 @@ final class AuditJournalDisplay
     public static function nadpisDeystviya(string $kod): string
     {
         return match ($kod) {
+            'created' => 'Создание',
+            'updated' => 'Изменение данных',
+            'deleted' => 'Удаление',
             'sozdano' => 'Создание объявления',
             'obnovleno' => 'Изменение данных',
             'opublikovano' => 'Публикация в каталоге',
@@ -92,9 +95,56 @@ final class AuditJournalDisplay
     }
 
     /** Список действий для фильтра в админке. @return array<string, string> */
+    /**
+     * Приводит detalizatsiya к списку {polya, bilo, stalo} (старый демо-формат: ключ → old/new).
+     *
+     * @param  array<string, mixed>|list<array<string, mixed>>|null  $det
+     * @return list<array{polya: string, bilo: mixed, stalo: mixed}>
+     */
+    public static function razobratDetalizatsiyu(?array $det): array
+    {
+        if ($det === null || $det === []) {
+            return [];
+        }
+
+        if (isset($det[0]) && is_array($det[0]) && isset($det[0]['polya'])) {
+            return array_values(array_map(static fn (array $st) => [
+                'polya' => (string) ($st['polya'] ?? ''),
+                'bilo' => $st['bilo'] ?? null,
+                'stalo' => $st['stalo'] ?? null,
+            ], $det));
+        }
+
+        $out = [];
+        foreach ($det as $key => $val) {
+            if (! is_array($val)) {
+                continue;
+            }
+            if (isset($val['polya'])) {
+                $out[] = [
+                    'polya' => (string) $val['polya'],
+                    'bilo' => $val['bilo'] ?? null,
+                    'stalo' => $val['stalo'] ?? null,
+                ];
+
+                continue;
+            }
+            if (array_key_exists('old', $val) || array_key_exists('new', $val)) {
+                $out[] = [
+                    'polya' => is_string($key) ? $key : (string) ($val['polya'] ?? ''),
+                    'bilo' => $val['old'] ?? $val['bilo'] ?? null,
+                    'stalo' => $val['new'] ?? $val['stalo'] ?? null,
+                ];
+            }
+        }
+
+        return $out;
+    }
+
     public static function kodyDeystviyDlyaFiltra(): array
     {
         $kody = [
+            'created', 'updated', 'deleted',
             'sozdano', 'obnovleno', 'opublikovano', 'otmecheno_kak_prodannoe', 'udaleno',
             'dogovor_sozdan', 'dogovor_obnovlen', 'dogovor_podtverzhden', 'dogovor_otklonen', 'dogovor_udalen',
             'polzovatel_sozdan', 'polzovatel_obnovlen', 'polzovatel_udalen',

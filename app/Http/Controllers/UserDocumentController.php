@@ -6,6 +6,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Models\UserDocument;
 use App\Services\DocumentVerificationService;
+use App\Support\DocumentDataFields;
 use App\Support\DocumentStorage;
 use App\Support\PropertyListingAuthor;
 use App\Support\UserProfileDocuments;
@@ -51,11 +52,16 @@ class UserDocumentController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $profileTips = ['passport', 'inn'];
-        $validated = $request->validate([
+        $tip = $request->string('tip')->toString();
+        if (!in_array($tip, $profileTips, true)) {
+            abort(422);
+        }
+
+        $validated = $request->validate(array_merge([
             'tip' => ['required', 'string', 'in:'.implode(',', $profileTips)],
             'nazvanie' => ['nullable', 'string', 'max:255'],
             'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
-        ]);
+        ], DocumentDataFields::validationRules($tip)), [], DocumentDataFields::validationAttributes($tip));
 
         $user = $request->user();
         $tip = $validated['tip'];
@@ -72,12 +78,17 @@ class UserDocumentController extends Controller
             'inn' => 'ИНН / СНИЛС',
         ];
 
+        $dannye = DocumentDataFields::extractFromRequest($request, $tip);
+        $dataSummary = DocumentDataFields::summaryForComment($tip, $dannye);
+
         $document = UserDocument::create([
             'polzovatel_id' => $user->id,
             'tip' => $tip,
             'nazvanie' => $validated['nazvanie'] ?? ($defaultNames[$tip] ?? $tip),
             'put_fajla' => $path,
             'status' => 'pending',
+            'dannye_json' => array_filter($dannye, fn ($v) => $v !== null && $v !== ''),
+            'kommentariy_mod' => $dataSummary !== '' ? $dataSummary : null,
         ]);
 
         app(DocumentVerificationService::class)->submitForExternalCheck($document);
@@ -122,7 +133,7 @@ class UserDocumentController extends Controller
         $sort = (string) $request->input('sort', 'queue');
         $dir = $request->input('dir', 'asc') === 'desc' ? 'desc' : 'asc';
 
-        $qb = UserDocument::query()->with(['user', 'property']);
+        $qb = UserDocument::query()->with(['user.personalData', 'property']);
 
         if ($q !== '') {
             $escaped = addcslashes($q, '%_\\');
@@ -145,9 +156,9 @@ class UserDocumentController extends Controller
         }
 
         if ($status === 'queue') {
-            $qb->whereIn('status', ['pending', 'checking', 'rejected']);
+            $qb->whereStatusKodIn(['pending', 'checking', 'rejected']);
         } elseif ($status !== '' && $status !== 'all') {
-            $qb->where('status', $status);
+            $qb->whereStatusKod($status);
         }
 
         if ($tip !== '') {
@@ -170,7 +181,7 @@ class UserDocumentController extends Controller
         } elseif ($sort === 'oldest') {
             $qb->orderBy('sozdano_at');
         } else {
-            $qb->orderByRaw("FIELD(status, 'pending', 'checking', 'rejected', 'verified')")
+            $qb->orderByRaw(\App\Models\DocumentStatus::fieldOrderSql())
                 ->orderByDesc('sozdano_at');
         }
 

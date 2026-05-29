@@ -131,6 +131,15 @@
                         'egrnJsonOnly' => false,
                         'hasPathButMissing' => $latest && $latest->put_fajla && !$latest->view_url,
                     ])
+                    @php
+                        $profileDataLines = $tip === 'passport'
+                            ? \App\Support\DocumentDataFields::personalDataLines($user->personalData)
+                            : ($latest?->dataDisplayLines() ?? []);
+                    @endphp
+                    @include('partials.document-data-display', [
+                        'lines' => $profileDataLines,
+                        'title' => $profileDataLines !== [] ? 'Реквизиты' : null,
+                    ])
                 </div>
             </div>
 
@@ -161,8 +170,20 @@
                 <form method="POST" action="{{ route('profile.documents.store') }}" enctype="multipart/form-data" class="space-y-4 border-t border-slate-100 pt-4">
                     @csrf
                     <input type="hidden" name="tip" value="{{ $tip }}">
+                    @if($tip === 'passport')
+                        <p class="text-sm text-slate-600 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
+                            Данные паспорта заполняются в <a href="#step-personal" class="text-brand-700 underline font-medium">шаге 1</a>.
+                            Здесь прикрепите только скан разворота с фото.
+                        </p>
+                    @elseif(\App\Support\DocumentDataFields::hasFields($tip))
+                        @include('partials.document-data-fields', [
+                            'tip' => $tip,
+                            'values' => old('dannye', $latest?->dannye_json ?? []),
+                            'idPrefix' => 'profile_' . $tip,
+                        ])
+                    @endif
                     <div>
-                        <label class="form-label">Файл (PDF, JPG, PNG, до 10 МБ)</label>
+                        <label class="form-label">Файл (PDF, JPG, PNG, до 10 МБ) *</label>
                         <input type="file" name="file" class="form-input" required accept=".pdf,.jpg,.jpeg,.png">
                     </div>
                     <button type="submit" class="btn-primary">

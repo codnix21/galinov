@@ -33,7 +33,21 @@
     @endauth
 </div>
 
-@php $st = $property->status_obyavleniya ?? $property->status; @endphp
+@php
+    $st = $property->status_obyavleniya ?? $property->status;
+    $listingUnavailable = $listingUnavailable ?? null;
+@endphp
+@if($listingUnavailable === 'sold')
+    <div class="mb-6 p-4 rounded-xl border-2 border-slate-300 bg-slate-100 text-slate-800 text-sm">
+        <p class="font-semibold mb-1">Объект продан</p>
+        <p class="text-slate-600">Объявление снято с витрины. Просмотр доступен по ссылке, новые заявки и покупка недоступны.</p>
+    </div>
+@elseif($listingUnavailable === 'rented')
+    <div class="mb-6 p-4 rounded-xl border-2 border-slate-300 bg-slate-100 text-slate-800 text-sm">
+        <p class="font-semibold mb-1">Объект сдан в аренду</p>
+        <p class="text-slate-600">Объявление снято с витрины. Просмотр доступен по ссылке, новые заявки и онлайн-покупка недоступны.</p>
+    </div>
+@endif
 @if($st === 'pending_review')
     <div class="mb-6 p-4 border-2 border-amber-400 bg-amber-50 text-amber-950 text-sm">
         Объявление на модерации. После проверки сотрудником оно появится в общем каталоге.
@@ -166,6 +180,8 @@
                 {{ number_format((float)($property->tsena ?? 0), 0, ',', ' ') }} ₽
             </div>
             
+            @include('properties.partials.property-owners-display')
+
             <div class="mb-8">
                 <h2 class="text-2xl font-bold mb-4">Описание</h2>
                 <div class="prose prose-sm max-w-none">
@@ -214,6 +230,7 @@
                             </span>
                         </div>
                     @endif
+                    @include('properties.partials.house-characteristics')
                     @if($property->user)
                     <div class="pb-4 border-b border-gray-200">
                         <span class="text-sm text-gray-600 block mb-1">Автор объявления</span>
@@ -291,7 +308,15 @@
             $isActiveListing = ($property->status_obyavleniya ?? $property->status ?? '') === 'active';
             $canInquire = $isActiveListing && (!Auth::check() || (int)Auth::id() !== (int)($property->polzovatel_id ?? 0));
         @endphp
-        @if($canInquire)
+        @if(empty($listingUnavailable))
+        @include('properties.partials.property-info-requests', [
+            'property' => $property,
+            'canAsk' => $canAskInfo ?? false,
+            'infoRequests' => $infoRequests ?? collect(),
+        ])
+        @endif
+
+        @if($canInquire && empty($listingUnavailable))
         <div class="card p-6">
             <h3 class="text-xl font-bold mb-3">Заявка на объект</h3>
             <p class="text-sm text-gray-600 mb-4">Оставьте контакты — риэлтор перезвонит в ближайшее время.</p>

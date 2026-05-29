@@ -32,7 +32,7 @@ foreach (Property::query()->cursor() as $property) {
     foreach ($required as $tip) {
         $exists = UserDocument::where('nedvizhimost_id', $property->id)
             ->where('tip', $tip)
-            ->where('status', 'verified')
+            ->whereStatusKod('verified')
             ->exists();
         if ($exists) {
             continue;

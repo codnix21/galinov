@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MapsRequestStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,14 +12,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class RealtorClient extends Model
 {
+    use MapsRequestStatus;
+
     protected $table = 'klienty_rieltora';
 
     protected $fillable = [
         'rieltor_id',
         'klient_id',
-        'status',
+        'status_zayavki_id',
         'zametki',
     ];
+
+    public static function statusGruppa(): string
+    {
+        return 'crm';
+    }
 
     const CREATED_AT = 'sozdano_at';
 

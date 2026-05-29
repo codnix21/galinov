@@ -14,7 +14,6 @@ return new class extends Migration
             $table->unsignedBigInteger('sushchnost_id');
             $table->unsignedInteger('nomer_versii');
             $table->string('status_kod', 50)->nullable();
-            $table->string('status_nazvanie', 100)->nullable();
             $table->foreignId('polzovatel_id')->nullable()->constrained('polzovateli')->nullOnDelete();
             $table->text('kommentariy')->nullable();
             $table->timestamp('sozdano_at')->useCurrent();

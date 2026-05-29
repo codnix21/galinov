@@ -69,12 +69,14 @@
                 activeIndex = -1;
             }
 
+            var maxResults = 12;
+
             function filterLocal(q) {
                 var query = q.trim().toLowerCase();
-                if (!query) return items.slice(0, 50);
+                if (!query) return items.slice(0, maxResults);
                 return items.filter(function(item) {
                     return (item.label + ' ' + (item.hint || '')).toLowerCase().indexOf(query) !== -1;
-                }).slice(0, 50);
+                }).slice(0, maxResults);
             }
 
             function fetchRemote(q) {
@@ -89,7 +91,7 @@
                 })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
-                    var remote = data.items || [];
+                    var remote = (data.items || []).slice(0, maxResults);
                     renderList(remote.length ? remote : filterLocal(q));
                 })
                 .catch(function() { renderList(filterLocal(q)); });
@@ -123,6 +125,8 @@
             });
         });
     }
+
+    window.initFioSearchSelects = initFioSearchSelects;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initFioSearchSelects);

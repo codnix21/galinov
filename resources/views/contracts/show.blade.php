@@ -111,9 +111,34 @@
 
     <div class="card p-6 mb-6">
         <h2 class="text-2xl font-bold mb-4">Стороны сделки</h2>
+        @php $sellers = $contract->resolvedSellers(); @endphp
+        @if($sellers->count() > 1)
+            <div class="mb-6">
+                <h3 class="text-lg font-bold mb-3">{{ ($contract->tip ?? $contract->type) === 'rent' ? 'Арендодатели' : 'Продавцы' }} ({{ $sellers->count() }})</h3>
+                <div class="space-y-3">
+                    @foreach($sellers as $seller)
+                        @php $u = $seller->user; @endphp
+                        <div class="p-3 border border-slate-200 rounded-lg text-sm">
+                            <p class="font-semibold">{{ $seller->fio() }}
+                                @if((int) $seller->polzovatel_id === (int) $contract->vladelets_id)
+                                    <span class="badge ml-1">основной</span>
+                                @endif
+                            </p>
+                            @if($seller->dolya_procent)
+                                <p class="text-gray-600">Доля: {{ number_format((float) $seller->dolya_procent, 2, ',', ' ') }} %</p>
+                            @endif
+                            @if($u)
+                                <p class="text-gray-600">{{ $u->email_polzovatela }}</p>
+                                @if($u->telefon)<p class="text-gray-600">{{ $u->telefon }}</p>@endif
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-                <h3 class="text-lg font-bold mb-2">Сторона 1: владелец</h3>
+                <h3 class="text-lg font-bold mb-2">Сторона 1: {{ $sellers->count() > 1 ? 'основной ' : '' }}{{ ($contract->tip ?? $contract->type) === 'rent' ? 'арендодатель' : 'продавец' }}</h3>
                 @if($contract->owner)
                     <p><strong>Имя:</strong> {{ trim($contract->owner->familia . ' ' . $contract->owner->imya . ' ' . $contract->owner->otchestvo) }}</p>
                     <p><strong>Email:</strong> {{ $contract->owner->email_polzovatela }}</p>
@@ -210,6 +235,24 @@
     @endif
 
     @include('contracts.partials.ecp-signatures', compact('contract', 'ecpStatuses', 'canSignEcp', 'ecpFullySigned', 'viewerPartyRole'))
+
+    @if(($contract->tip ?? $contract->type) === 'rent')
+        <div class="card p-6 mb-6 border border-slate-200 bg-slate-50/60">
+            <h3 class="text-lg font-bold mb-2">Бумажный договор найма</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                Типовая форма с уже подставленными ФИО, адресом, сроком и платой. Распечатайте в двух экземплярах,
+                подпишите на встрече и при необходимости загрузите скан (это может сделать риэлтор или администратор).
+            </p>
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ route('contracts.print-rent', $contract) }}" target="_blank" rel="noopener" class="btn-primary">
+                    Открыть бланк для печати
+                </a>
+                <a href="{{ route('contracts.pdf', $contract) }}" target="_blank" rel="noopener" class="btn">
+                    PDF из системы
+                </a>
+            </div>
+        </div>
+    @endif
 
     @php
         $showPaperArchive = (bool) $contract->skan_dogovora

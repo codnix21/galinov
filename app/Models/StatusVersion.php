@@ -17,7 +17,6 @@ class StatusVersion extends Model
         'sushchnost_id',
         'nomer_versii',
         'status_kod',
-        'status_nazvanie',
         'polzovatel_id',
         'kommentariy',
         'sozdano_at',
@@ -30,5 +29,14 @@ class StatusVersion extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'polzovatel_id');
+    }
+
+    public function displayStatusLabel(): string
+    {
+        return match ($this->tip_sushchnosti) {
+            'property' => PropertyStatus::query()->where('kod', $this->status_kod)->value('nazvanie'),
+            'contract' => ContractStatus::query()->where('kod', $this->status_kod)->value('nazvanie'),
+            default => null,
+        } ?? $this->status_kod ?? '—';
     }
 }

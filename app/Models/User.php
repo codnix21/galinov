@@ -278,11 +278,10 @@ class User extends Authenticatable
         return $this->hasMany(Property::class, 'polzovatel_id');
     }
 
-    /** Договоры, где пользователь — клиент (klient_id) */
-    /** Договоры, где этот пользователь указан клиентом (klient_id) */
+    /** Договоры, где пользователь — покупатель (pokupatel_id) */
     public function clientContracts()
     {
-        return $this->hasMany(Contract::class, 'klient_id');
+        return $this->hasMany(Contract::class, 'pokupatel_id');
     }
 
     /** Договоры, где пользователь — риелтор (rieltor_id) */

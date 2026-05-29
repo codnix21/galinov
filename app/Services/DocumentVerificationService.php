@@ -59,7 +59,10 @@ class DocumentVerificationService
      *
      * @return array{ok: bool, message: string, document?: UserDocument, provider: string}
      */
-    public function verifyByCadastralNumber(Property $property, string $cadastralNumber): array
+    /**
+     * @param  array<string, string|null>  $extraData
+     */
+    public function verifyByCadastralNumber(Property $property, string $cadastralNumber, array $extraData = []): array
     {
         $normalized = $this->normalizeCadastralNumber($cadastralNumber);
         if ($normalized === null) {
@@ -95,6 +98,17 @@ class DocumentVerificationService
             'demo' => $this->isDemoMode(),
         ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
+        $dannye = array_filter(array_merge(
+            ['kadastrovy_nomer' => $normalized],
+            $extraData,
+        ), fn ($v) => $v !== null && $v !== '');
+
+        $dataSummary = \App\Support\DocumentDataFields::summaryForComment($egrnTip, $dannye);
+        $modComment = '[' . $provider . '] ' . $message;
+        if ($dataSummary !== '') {
+            $modComment .= ' · ' . $dataSummary;
+        }
+
         $document = UserDocument::create([
             'polzovatel_id' => $property->polzovatel_id,
             'nedvizhimost_id' => $property->id,
@@ -103,11 +117,12 @@ class DocumentVerificationService
             'nazvanie' => PropertyDocumentRules::allTipLabels()[$egrnTip] ?? 'ЕГРН',
             'put_fajla' => $path,
             'status' => $ok ? 'verified' : 'rejected',
+            'dannye_json' => $dannye,
             'vneshniy_id' => strtoupper(substr($provider, 0, 2)) . '-EGRN-' . strtoupper(Str::random(8)),
             'vneshniy_status' => $ok ? 'verified' : 'rejected',
             'vneshniy_provereno_at' => now(),
             'provereno_at' => $ok ? now() : null,
-            'kommentariy_mod' => '[' . $provider . '] ' . $message,
+            'kommentariy_mod' => $modComment,
         ]);
 
         return [
@@ -137,7 +152,7 @@ class DocumentVerificationService
         UserDocument::query()
             ->where('nedvizhimost_id', $property->id)
             ->where('tip', $egrnTip)
-            ->whereIn('status', ['rejected', 'pending', 'checking'])
+            ->whereStatusKodIn(['rejected', 'pending', 'checking'])
             ->delete();
     }
 

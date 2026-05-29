@@ -18,7 +18,6 @@ class ProcessVersionService
             'property',
             (int) $property->id,
             $property->statusRelation?->kod,
-            $property->statusRelation?->nazvanie ?? $property->status_name,
             $actor,
             $comment,
         );
@@ -31,7 +30,6 @@ class ProcessVersionService
             'contract',
             (int) $contract->id,
             $contract->statusRelation?->kod ?? $contract->status,
-            $contract->statusRelation?->nazvanie ?? $contract->status_name,
             $actor,
             $comment,
         );
@@ -41,7 +39,6 @@ class ProcessVersionService
         string $entityType,
         int $entityId,
         ?string $statusKod,
-        ?string $statusName,
         ?User $actor = null,
         ?string $comment = null,
     ): void {
@@ -59,7 +56,6 @@ class ProcessVersionService
             'sushchnost_id' => $entityId,
             'nomer_versii' => ((int) $lastVersion) + 1,
             'status_kod' => $statusKod,
-            'status_nazvanie' => $statusName,
             'polzovatel_id' => $actor?->id,
             'kommentariy' => $comment,
             'sozdano_at' => now(),

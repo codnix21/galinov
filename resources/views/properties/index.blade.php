@@ -13,7 +13,12 @@
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('properties.map', request()->query()) }}" class="btn">🗺 Карта</a>
             @auth
+                @if(Auth::user()->isClient())
+                    <a href="{{ route('properties.selection-request.create') }}" class="btn">Заявка на подбор</a>
+                @endif
                 <a href="{{ route('properties.create') }}" class="btn-primary">+ Создать объявление</a>
+            @else
+                <a href="{{ route('login') }}" class="btn">Заявка на подбор</a>
             @endauth
         </div>
     </div>
@@ -95,13 +100,15 @@
                 <label class="form-label">Этаж до</label>
                 <input type="number" name="max_floor" value="{{ request('max_floor') }}" class="form-input">
             </div>
-            <div class="flex items-end">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" name="has_photos" value="1" class="rounded border-slate-300" {{ request('has_photos') ? 'checked' : '' }}>
-                    <span class="text-sm">Только с фото</span>
+            <div class="flex items-end min-h-[42px]">
+                <label class="flex items-center gap-2.5 cursor-pointer py-2.5">
+                    <input type="checkbox" name="has_photos" value="1" class="h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500/30" {{ request('has_photos') ? 'checked' : '' }}>
+                    <span class="text-sm text-slate-700">Только с фото</span>
                 </label>
             </div>
         </div>
+
+        @include('properties.partials.catalog-house-filters')
         <div class="flex gap-3 mt-4">
             <button type="submit" class="btn-primary">Применить</button>
             <a href="{{ route('properties.index') }}" class="btn">Сбросить</a>
@@ -136,100 +143,7 @@
 @if($properties->count() > 0)
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @foreach($properties as $property)
-            <div class="card p-6 group relative">
-                <!-- Кнопка избранного -->
-                @auth
-                    <div class="absolute top-3 right-3 z-20" onclick="event.stopPropagation()">
-                        @if(isset($property->is_favorite) && $property->is_favorite)
-                            <form action="{{ route('favorites.destroy', $property) }}" method="POST" class="favorite-form">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="favorite-btn favorite-btn--active" title="Убрать из избранного" aria-label="Убрать из избранного">★</button>
-                            </form>
-                        @else
-                            <form action="{{ route('favorites.store', $property) }}" method="POST" class="favorite-form">
-                                @csrf
-                                <button type="submit" class="favorite-btn favorite-btn--inactive" title="В избранное" aria-label="Добавить в избранное">☆</button>
-                            </form>
-                        @endif
-                    </div>
-                @endauth
-                
-                <div class="cursor-pointer" onclick="window.location='{{ route('properties.show', $property) }}'">
-                    <!-- Блок для фотографий -->
-                    <div class="mb-4 h-48 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                        @if($property->images && $property->images->count() > 0)
-                            <img src="{{ $property->images->first()->public_url }}" alt="{{ $property->nazvanie }}" class="w-full h-full object-cover">
-                        @else
-                            <div class="text-gray-400 text-sm">Нет фотографии</div>
-                        @endif
-                    </div>
-                
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex gap-2 flex-wrap">
-                        <span class="badge">{{ $property->type_name }}</span>
-                        <span class="badge">{{ $property->operation_name }}</span>
-                    </div>
-                </div>
-                <h3 class="text-xl font-bold mb-3 group-hover:underline">
-                    {{ $property->nazvanie }}
-                </h3>
-                <p class="text-gray-600 text-sm mb-4 line-clamp-2 min-h-[2.5rem]">
-                    {{ $property->opisanie }}
-                </p>
-                <div class="space-y-2 mb-4 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Город:</span>
-                        <span class="font-medium">{{ $property->gorod ?? 'Не указан' }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Адрес:</span>
-                        <span class="font-medium">{{ Str::limit($property->adres_ulitsy ?? '', 25) }}</span>
-                    </div>
-                    @if($property->user)
-                        <div class="flex items-center gap-2 pt-2 border-t border-gray-200">
-                            @if($property->user->avatar_polzovatela)
-                                <img src="{{ $property->user->avatar_url }}" alt="{{ trim($property->user->familia . ' ' . $property->user->imya . ' ' . $property->user->otchestvo) }}" class="w-8 h-8 rounded-full object-cover">
-                            @else
-                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xs">
-                                    {{ mb_substr($property->user->imya ?? '', 0, 1) }}
-                                </div>
-                            @endif
-                            <div class="flex-1 min-w-0">
-                                <div class="font-medium text-xs truncate">{{ trim($property->user->familia . ' ' . $property->user->imya . ' ' . $property->user->otchestvo) }}</div>
-                                @if($property->user->telefon)
-                                    <div class="text-xs text-gray-600">{{ $property->user->telefon }}</div>
-                                @endif
-                            </div>
-                        </div>
-                    @endif
-                    @if($property->ploshchad)
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Площадь:</span>
-                            <span class="font-medium">{{ $property->ploshchad }} м²</span>
-                        </div>
-                    @endif
-                    @if($property->komnaty)
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Комнат:</span>
-                            <span class="font-medium">{{ $property->komnaty }}</span>
-                        </div>
-                    @endif
-                    @if($property->etazh)
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Этаж:</span>
-                            <span class="font-medium">{{ $property->etazh }}{{ $property->vsego_etazhey ? '/' . $property->vsego_etazhey : '' }}</span>
-                        </div>
-                    @endif
-                </div>
-                <div class="divider pt-4 mt-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-2xl font-bold">{{ number_format($property->tsena, 0, ',', ' ') }} ₽</span>
-                        <span class="text-xs text-gray-500">→</span>
-                    </div>
-                </div>
-                </div>
-            </div>
+            @include('properties.partials.property-catalog-card', ['property' => $property])
         @endforeach
     </div>
 
@@ -238,10 +152,17 @@
         {{ $properties->links() }}
     </div>
 @else
-    <div class="card p-12 text-center">
-        <p class="text-xl text-gray-600 mb-4">Объявления не найдены</p>
-        <p class="text-sm text-gray-500">Попробуйте изменить параметры фильтрации</p>
-    </div>
+    @if($hasActiveFilters ?? false)
+        @include('properties.partials.catalog-empty-state', [
+            'similarProperties' => $similarProperties ?? collect(),
+            'capturedFilters' => $capturedFilters ?? [],
+        ])
+    @else
+        <div class="card p-12 text-center">
+            <p class="text-xl text-gray-600 mb-4">В каталоге пока нет активных объявлений</p>
+            <p class="text-sm text-gray-500">Загляните позже или уточните критерии поиска</p>
+        </div>
+    @endif
 @endif
 
 <script>

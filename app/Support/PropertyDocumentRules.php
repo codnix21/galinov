@@ -202,7 +202,7 @@ class PropertyDocumentRules
             ->whereNull('nedvizhimost_id')
             ->where('polzovatel_id', $property->polzovatel_id)
             ->whereIn('tip', ['passport', 'inn'])
-            ->where('status', 'verified')
+            ->whereStatusKod('verified')
             ->pluck('tip')
             ->all();
         $profileHasPassport = in_array('passport', $profileVerified, true);
@@ -288,7 +288,7 @@ class PropertyDocumentRules
             ->whereNull('nedvizhimost_id')
             ->where('polzovatel_id', $property->polzovatel_id)
             ->where('tip', 'passport')
-            ->where('status', 'verified')
+            ->whereStatusKod('verified')
             ->orderByDesc('sozdano_at')
             ->first();
 
@@ -312,6 +312,16 @@ class PropertyDocumentRules
                 $source = 'profile';
             }
 
+            $dataLines = [];
+            if ($tip === 'passport') {
+                $property->loadMissing('user.personalData');
+                $dataLines = DocumentDataFields::personalDataLines($property->user?->personalData);
+            } elseif ($row?->dannye_json) {
+                $dataLines = DocumentDataFields::displayLines($tip, $row->dannye_json, $property);
+            } elseif ($tip === 'passport' && $profilePassport?->dannye_json) {
+                $dataLines = DocumentDataFields::displayLines('passport', $profilePassport->dannye_json);
+            }
+
             $out[] = [
                 'tip' => $tip,
                 'label' => $labels[$tip] ?? $tip,
@@ -319,6 +329,7 @@ class PropertyDocumentRules
                 'url' => $url,
                 'source' => $source,
                 'note' => $note,
+                'data_lines' => $dataLines,
             ];
         }
 

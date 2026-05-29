@@ -21,10 +21,8 @@
             @if($inq->status === 'new')
                 <form method="POST" action="{{ route('realtor.inquiries.process', $inq) }}">
                     @csrf
-                    <button type="submit" class="btn-primary text-sm">Обработано</button>
+                    <button type="submit" class="btn-primary text-sm">Отметить обработанной</button>
                 </form>
-            @else
-                <span class="badge bg-green-100 text-green-800">Обработано</span>
             @endif
         </div>
     </div>

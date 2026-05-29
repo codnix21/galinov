@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Property;
 use App\Models\UserDocument;
 use App\Services\DocumentVerificationService;
+use App\Support\DocumentDataFields;
 use App\Support\PropertyDocumentRules;
 use App\Support\PropertyListingAuthor;
 use Illuminate\Http\RedirectResponse;
@@ -22,7 +23,7 @@ class PropertyDocumentController extends Controller
             abort(403);
         }
 
-        $property->loadMissing('user');
+        $property->loadMissing('user.personalData');
 
         $docStatus = PropertyDocumentRules::statusForProperty($property);
         $required = PropertyDocumentRules::requiredForType(
@@ -41,7 +42,7 @@ class PropertyDocumentController extends Controller
             ->whereNull('nedvizhimost_id')
             ->where('polzovatel_id', $property->polzovatel_id)
             ->whereIn('tip', ['passport', 'inn'])
-            ->where('status', 'verified')
+            ->whereStatusKod('verified')
             ->pluck('tip')
             ->all();
 
@@ -49,7 +50,7 @@ class PropertyDocumentController extends Controller
             ->whereNull('nedvizhimost_id')
             ->where('polzovatel_id', $property->polzovatel_id)
             ->where('tip', 'passport')
-            ->where('status', 'verified')
+            ->whereStatusKod('verified')
             ->orderByDesc('sozdano_at')
             ->first();
 
@@ -95,12 +96,15 @@ class PropertyDocumentController extends Controller
             $property->operatsiya ?? 'sale',
         );
 
-        $validated = $request->validate([
+        $tip = $request->string('tip')->toString();
+        if (!in_array($tip, $allowedTips, true)) {
+            abort(422);
+        }
+
+        $validated = $request->validate(array_merge([
             'tip' => ['required', 'string', 'in:' . implode(',', $allowedTips)],
             'file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:15360'],
-            'kadastrovy_nomer' => ['nullable', 'string', 'max:64'],
-            'nomer_vypiski' => ['nullable', 'string', 'max:64'],
-        ]);
+        ], DocumentDataFields::validationRules($tip)), [], DocumentDataFields::validationAttributes($tip));
 
         if (!PropertyDocumentRules::canOwnerUploadStep($property, $validated['tip'])) {
             $prev = PropertyDocumentRules::previousStepLabel($property, $validated['tip']);
@@ -116,26 +120,15 @@ class PropertyDocumentController extends Controller
             ->where('tip', $validated['tip'])
             ->delete();
 
-        if (!empty($validated['kadastrovy_nomer'])) {
-            $normalized = app(DocumentVerificationService::class)
-                ->normalizeCadastralNumber($validated['kadastrovy_nomer']);
-            if ($normalized !== null) {
-                $property->update(['kadastrovy_nomer' => $normalized]);
-            }
-        }
+        $dannye = DocumentDataFields::extractFromRequest($request, $validated['tip']);
+        $dannye = $this->normalizeDocumentDataCadastral($property, $validated['tip'], $dannye);
 
         $path = $request->file('file')->store(
             'documents/property-' . $property->id,
             'public'
         );
 
-        $commentExtra = [];
-        if (!empty($validated['nomer_vypiski'])) {
-            $commentExtra[] = '№ выписки: ' . trim($validated['nomer_vypiski']);
-        }
-        if ($property->kadastrovy_nomer) {
-            $commentExtra[] = 'кад. № ' . $property->kadastrovy_nomer;
-        }
+        $dataSummary = DocumentDataFields::summaryForComment($validated['tip'], $dannye);
 
         $document = UserDocument::create([
             'polzovatel_id' => $property->polzovatel_id,
@@ -145,7 +138,8 @@ class PropertyDocumentController extends Controller
             'nazvanie' => PropertyDocumentRules::allTipLabels()[$validated['tip']] ?? null,
             'put_fajla' => $path,
             'status' => 'pending',
-            'kommentariy_mod' => $commentExtra !== [] ? implode('; ', $commentExtra) : null,
+            'dannye_json' => array_filter($dannye, fn ($v) => $v !== null && $v !== ''),
+            'kommentariy_mod' => $dataSummary !== '' ? $dataSummary : null,
         ]);
 
         app(DocumentVerificationService::class)->submitForExternalCheck($document);
@@ -184,13 +178,24 @@ class PropertyDocumentController extends Controller
             ->where('tip', $egrnTip)
             ->delete();
 
-        $validated = $request->validate([
-            'kadastrovy_nomer' => ['required', 'string', 'max:64'],
-        ]);
+        $validated = $request->validate(
+            DocumentDataFields::validationRules($egrnTip),
+            [],
+            DocumentDataFields::validationAttributes($egrnTip),
+        );
+
+        $dannye = DocumentDataFields::extractFromRequest($request, $egrnTip);
+        $dannye = $this->normalizeDocumentDataCadastral($property, $egrnTip, $dannye);
+
+        if (empty($dannye['kadastrovy_nomer'])) {
+            return redirect()->route('properties.documents', $property)
+                ->withErrors(['dannye.kadastrovy_nomer' => 'Укажите кадастровый номер.']);
+        }
 
         $result = app(DocumentVerificationService::class)->verifyByCadastralNumber(
             $property,
-            $validated['kadastrovy_nomer'],
+            (string) $dannye['kadastrovy_nomer'],
+            $dannye,
         );
 
         if (!$result['ok']) {
@@ -222,5 +227,25 @@ class PropertyDocumentController extends Controller
         $user = $request->user();
 
         return PropertyListingAuthor::canManage($user, $property);
+    }
+
+    /**
+     * @param  array<string, string|null>  $dannye
+     * @return array<string, string|null>
+     */
+    private function normalizeDocumentDataCadastral(Property $property, string $tip, array $dannye): array
+    {
+        if (!in_array($tip, ['egrn', 'egrn_land', 'cadastral'], true) || empty($dannye['kadastrovy_nomer'])) {
+            return $dannye;
+        }
+
+        $normalized = app(DocumentVerificationService::class)
+            ->normalizeCadastralNumber($dannye['kadastrovy_nomer']);
+        if ($normalized !== null) {
+            $dannye['kadastrovy_nomer'] = $normalized;
+            $property->update(['kadastrovy_nomer' => $normalized]);
+        }
+
+        return $dannye;
     }
 }

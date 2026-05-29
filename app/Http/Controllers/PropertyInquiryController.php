@@ -49,7 +49,7 @@ class PropertyInquiryController extends Controller
         }
 
         $inquiries = PropertyInquiry::with(['property', 'user'])
-            ->orderByRaw("FIELD(status, 'new', 'processed')")
+            ->orderByRaw(\App\Models\RequestStatus::fieldOrderSql('inquiry', ['new', 'processed']))
             ->orderByDesc('sozdano_at')
             ->paginate(20);
 

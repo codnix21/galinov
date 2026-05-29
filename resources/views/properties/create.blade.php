@@ -129,6 +129,8 @@
         </div>
         <p class="text-xs text-gray-500 -mt-4 mb-6">Этаж не может быть больше общего количества этажей в доме.</p>
 
+        @include('properties.partials.house-fields')
+
         <div class="mb-8">
             <label for="images" class="form-label">Фотографии</label>
             <input type="file" id="images" name="images[]" multiple accept="image/*" class="form-input">

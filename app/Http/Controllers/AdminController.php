@@ -14,7 +14,9 @@ use App\Models\User;
 use App\Services\TextCensor;
 use App\Support\ContractFormOptions;
 use App\Support\EnsureContractPartiesSchema;
+use App\Support\PropertyCatalogFilter;
 use App\Support\PropertyFloorRules;
+use App\Support\PropertyHouseAttributes;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -257,27 +259,28 @@ class AdminController extends Controller
     public function properties(Request $request): View
     {
         $this->checkAdmin();
-        
-        $query = Property::with(['user', 'cityRelation']);
-        
-        // Поиск
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nazvanie', 'like', "%{$search}%")
-                    ->orWhere('opisanie', 'like', "%{$search}%")
-                    ->orWhereHas('cityRelation', function ($cq) use ($search) {
-                        $cq->where('nazvanie', 'like', "%{$search}%");
-                    })
-                    ->orWhere('adres_ulitsy', 'like', "%{$search}%");
-            });
+
+        $query = Property::with(['user', 'cityRelation', 'statusRelation']);
+        PropertyCatalogFilter::applyAdminList($query, $request);
+
+        $properties = $query->paginate(20)->withQueryString();
+
+        $propertyStatuses = PropertyStatus::orderBy('id')->get();
+        $statusOptions = ['' => 'Все статусы'];
+        foreach ($propertyStatuses as $st) {
+            $statusOptions[$st->kod] = $st->nazvanie;
         }
-        
-        $properties = $query->latest()->paginate(20)->withQueryString();
+
+        $cities = City::query()
+            ->whereHas('properties')
+            ->orderBy('nazvanie')
+            ->get(['id', 'nazvanie']);
 
         return view('admin.properties.index', [
             'properties' => $properties,
-            'propertyStatuses' => PropertyStatus::orderBy('id')->get(),
+            'propertyStatuses' => $propertyStatuses,
+            'statusOptions' => $statusOptions,
+            'cities' => $cities,
         ]);
     }
 
@@ -319,10 +322,13 @@ class AdminController extends Controller
             'status_obyavleniya' => 'required|in:draft,active,pending_review,sold,inactive,rented',
             'images' => 'nullable|array|max:10',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,bmp|max:5120', // 5MB max per image
+            ...PropertyHouseAttributes::validationRules(),
         ], [
             'gorod.required' => 'Укажите город: выберите населённый пункт из списка подсказок.',
             'adres_ulitsy.regex' => 'Укажите улицу и номер дома (в адресе должен быть номер).',
         ]);
+
+        $validated = PropertyHouseAttributes::mergeFromRequest($request, $validated);
 
         $profanityErrors = TextCensor::propertyFieldErrors($validated['nazvanie'], $validated['opisanie']);
         if ($profanityErrors !== []) {
@@ -416,10 +422,17 @@ class AdminController extends Controller
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,bmp|max:5120', // 5MB max per image
             'delete_images' => 'nullable|array',
             'delete_images.*' => 'exists:izobrazheniya_nedvizhimosti,id',
+            ...PropertyHouseAttributes::validationRules(),
         ], [
             'gorod.required' => 'Укажите город: выберите населённый пункт из списка подсказок.',
             'adres_ulitsy.regex' => 'Укажите улицу и номер дома (в адресе должен быть номер).',
+            'status_obyavleniya.required' => 'Выберите статус объявления.',
+            'status_obyavleniya.in' => 'Выбран недопустимый статус объявления.',
+        ], [
+            'status_obyavleniya' => 'статус объявления',
         ]);
+
+        $validated = PropertyHouseAttributes::mergeFromRequest($request, $validated);
 
         $profanityErrors = TextCensor::propertyFieldErrors($validated['nazvanie'], $validated['opisanie']);
         if ($profanityErrors !== []) {
@@ -639,7 +652,6 @@ class AdminController extends Controller
         }
         unset($validated['status_dogovora']);
 
-        $validated['klient_id'] = $validated['pokupatel_id'];
         $validated['sozdal_kak'] = 'realtor';
         $validated['sozdal_storona'] = null;
         $validated['ozhidaet_podtverzhdeniya'] = null;
@@ -739,7 +751,6 @@ class AdminController extends Controller
             $validated['skan_dogovora'] = $request->file('skan_dogovora')->store('contract_scans/'.$contract->id, 'public');
         }
 
-        $validated['klient_id'] = $validated['pokupatel_id'];
         if ($statusRow && $statusRow->kod === 'active') {
             $now = now();
             $validated['podtverzhden_vladelets_at'] = $contract->podtverzhden_vladelets_at ?? $now;

@@ -55,31 +55,35 @@
 
     <div class="card p-6 h-fit">
         <h2 class="text-lg font-bold mb-4">Закрепить клиента</h2>
-        <form method="POST" action="{{ route('realtor.clients.store') }}" class="space-y-4">
-            @csrf
-            <div>
-                <label class="form-label">Клиент</label>
-                <select name="klient_id" class="form-input" required>
-                    <option value="">Выберите…</option>
-                    @foreach($availableClients as $c)
-                        <option value="{{ $c->id }}">{{ trim($c->familia.' '.$c->imya) }} — {{ $c->email_polzovatela }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="form-label">Статус</label>
-                <select name="status" class="form-input">
-                    @foreach($statusOptions as $k => $label)
-                        <option value="{{ $k }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="form-label">Заметки</label>
-                <textarea name="zametki" class="form-input" rows="4" placeholder="Что ищет, бюджет, сроки…"></textarea>
-            </div>
-            <button type="submit" class="btn-primary w-full">Закрепить</button>
-        </form>
+        @if($availableClients->isEmpty())
+            <p class="text-sm text-gray-600">Все клиенты агентства уже закреплены за риэлторами. Новых пользователей с ролью «Клиент» пока нет.</p>
+        @else
+            <form method="POST" action="{{ route('realtor.clients.store') }}" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="form-label">Клиент</label>
+                    <select name="klient_id" class="form-input" required>
+                        <option value="">— выберите клиента —</option>
+                        @foreach($availableClients as $c)
+                            <option value="{{ $c->id }}">{{ trim($c->familia.' '.$c->imya) }} — {{ $c->email_polzovatela }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Статус</label>
+                    <select name="status" class="form-input">
+                        @foreach($statusOptions as $k => $label)
+                            <option value="{{ $k }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Заметки</label>
+                    <textarea name="zametki" class="form-input" rows="4" placeholder="Что ищет, бюджет, сроки…"></textarea>
+                </div>
+                <button type="submit" class="btn-primary w-full">Закрепить</button>
+            </form>
+        @endif
     </div>
 </div>
 @endsection

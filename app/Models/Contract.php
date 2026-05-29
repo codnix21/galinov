@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Support\PublicDisk;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -24,7 +26,6 @@ class Contract extends Model
         'nedvizhimost_id',
         'vladelets_id',
         'pokupatel_id',
-        'klient_id',
         'rieltor_id',
         'sozdal_kak',
         'sozdal_storona',
@@ -40,6 +41,7 @@ class Contract extends Model
         'primechaniya',
         'skan_dogovora',
         'ozhidaet_podtverzhdeniya',
+        'oplata_status_id',
         'oplata_status',
         'oplata_at',
         'oplata_metod',
@@ -48,21 +50,21 @@ class Contract extends Model
         'avto_zapolnen',
         'ecp_podpis_vladelets_at',
         'ecp_podpis_vladelets_nomera',
-        'ecp_podpis_vladelets_fio',
         'ecp_podpis_pokupatel_at',
         'ecp_podpis_pokupatel_nomera',
-        'ecp_podpis_pokupatel_fio',
         'ecp_podpis_rieltor_at',
         'ecp_podpis_rieltor_nomera',
-        'ecp_podpis_rieltor_fio',
     ];
 
     /** При удалении договора убираем файл скана с диска public */
     protected static function booted(): void
     {
-        static::saving(function (Contract $contract): void {
-            if ($contract->pokupatel_id) {
-                $contract->klient_id = $contract->pokupatel_id;
+        static::creating(function (Contract $contract): void {
+            if (empty($contract->attributes['oplata_status_id'])) {
+                $defaultId = PaymentStatus::idFor('none');
+                if ($defaultId) {
+                    $contract->attributes['oplata_status_id'] = $defaultId;
+                }
             }
         });
 
@@ -93,10 +95,10 @@ class Contract extends Model
         return $this->attributes['nedvizhimost_id'] ?? null;
     }
 
-    /** Id клиента по договору */
+    /** Id покупателя по договору (алиас pokupatel_id) */
     public function getClientIdAttribute()
     {
-        return $this->attributes['klient_id'] ?? null;
+        return $this->attributes['pokupatel_id'] ?? null;
     }
 
     /** Id риелтора по договору */
@@ -161,7 +163,7 @@ class Contract extends Model
 
     public function setClientIdAttribute($value)
     {
-        $this->attributes['klient_id'] = $value;
+        $this->attributes['pokupatel_id'] = $value;
     }
 
     public function setRealtorIdAttribute($value)
@@ -244,6 +246,21 @@ class Contract extends Model
     const CREATED_AT = 'sozdano_at';
     const UPDATED_AT = 'obnovleno_at';
 
+    public function getOplataStatusAttribute(): string
+    {
+        return PaymentStatus::kodFor(isset($this->attributes['oplata_status_id'])
+            ? (int) $this->attributes['oplata_status_id']
+            : null) ?? 'none';
+    }
+
+    public function setOplataStatusAttribute(?string $value): void
+    {
+        $id = $value ? PaymentStatus::idFor($value) : null;
+        if ($id) {
+            $this->attributes['oplata_status_id'] = $id;
+        }
+    }
+
     public function isPaid(): bool
     {
         return in_array($this->oplata_status, ['simulated_paid', 'robokassa_paid'], true);
@@ -261,26 +278,51 @@ class Contract extends Model
         return $this->belongsTo(User::class, 'vladelets_id');
     }
 
+    /** Продавцы по договору (снимок собственников объекта) */
+    public function sellers(): HasMany
+    {
+        return $this->hasMany(ContractSeller::class, 'dogovor_id')->orderBy('poryadok');
+    }
+
+    /** @return Collection<int, ContractSeller> */
+    public function resolvedSellers(): Collection
+    {
+        $this->loadMissing(['sellers.user']);
+
+        if ($this->sellers->isNotEmpty()) {
+            return $this->sellers;
+        }
+
+        $owner = $this->resolvedOwner();
+        if (!$owner) {
+            return collect();
+        }
+
+        $seller = new ContractSeller([
+            'polzovatel_id' => $owner->id,
+            'dolya_procent' => 100,
+            'poryadok' => 0,
+        ]);
+        $seller->setRelation('user', $owner);
+
+        return collect([$seller]);
+    }
+
     /** Сторона 2: покупатель */
     public function buyer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'pokupatel_id');
     }
 
-    /** Покупатель (алиас; для старых записей — klient_id) */
+    /** Покупатель (алиас buyer) */
     public function client(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'klient_id');
+        return $this->buyer();
     }
 
-    /** Покупатель с учётом legacy-поля klient_id */
     public function resolvedBuyer(): ?User
     {
-        if ($this->pokupatel_id) {
-            return $this->buyer;
-        }
-
-        return $this->klient_id ? $this->client : null;
+        return $this->pokupatel_id ? $this->buyer : null;
     }
 
     /** Владелец с подстановкой из объявления при отсутствии vladelets_id */

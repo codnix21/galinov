@@ -42,7 +42,7 @@ class ContractApproval
 
     public static function buyerId(Contract $contract): ?int
     {
-        $id = $contract->pokupatel_id ?? $contract->klient_id ?? null;
+        $id = $contract->pokupatel_id ?? null;
 
         return $id ? (int) $id : null;
     }
@@ -106,6 +106,13 @@ class ContractApproval
         $uid = (int) $user->id;
         if (self::ownerId($contract) === $uid) {
             return 'owner';
+        }
+
+        $contract->loadMissing('sellers');
+        foreach ($contract->sellers as $seller) {
+            if ((int) $seller->polzovatel_id === $uid) {
+                return 'owner';
+            }
         }
         if (self::buyerId($contract) === $uid) {
             return 'buyer';

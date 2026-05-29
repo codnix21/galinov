@@ -5,6 +5,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\PropertyOwnerController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\CabinetController;
 use App\Http\Controllers\PageController;
@@ -26,6 +27,8 @@ use App\Http\Controllers\ExpressDealController;
 use App\Http\Controllers\UserDocumentController;
 use App\Http\Controllers\PropertyDocumentController;
 use App\Http\Controllers\PropertyInquiryController;
+use App\Http\Controllers\PropertySelectionRequestController;
+use App\Http\Controllers\PropertyInfoRequestController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\RobokassaPaymentController;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +67,7 @@ Route::get('/podborka/{token}', [PublicCollectionController::class, 'show'])->na
 // Каталог объявлений — видят все посетители
 Route::get('/properties', [PropertyController::class, 'index'])->name('properties.index');
 Route::get('/properties/map', [PropertyController::class, 'map'])->name('properties.map');
+Route::post('/properties/selection-request', [PropertySelectionRequestController::class, 'store'])->name('properties.selection-request.store');
 
 // Webhook Telegram (без CSRF)
 Route::post('/telegram/webhook', \App\Http\Controllers\TelegramWebhookController::class)->name('telegram.webhook');
@@ -71,6 +75,7 @@ Route::post('/telegram/webhook', \App\Http\Controllers\TelegramWebhookController
 // Личный кабинет: нужен вход и аккаунт не заблокирован
 Route::middleware(['auth', 'check.blocked'])->group(function () {
     Route::get('/cabinet', [CabinetController::class, 'index'])->name('cabinet.index');
+    Route::get('/selection-request', [PropertySelectionRequestController::class, 'create'])->name('properties.selection-request.create');
 
     Route::middleware('realtor.training')->group(function () {
         Route::get('/training', [PageController::class, 'training'])->name('pages.training');
@@ -110,6 +115,11 @@ Route::middleware(['auth', 'check.blocked'])->group(function () {
 
             Route::get('/inquiries', [PropertyInquiryController::class, 'index'])->name('inquiries.index');
             Route::post('/inquiries/{inquiry}/process', [PropertyInquiryController::class, 'process'])->name('inquiries.process');
+            Route::get('/selection-requests', [PropertySelectionRequestController::class, 'index'])->name('selection-requests.index');
+            Route::post('/selection-requests/{selectionRequest}/process', [PropertySelectionRequestController::class, 'process'])->name('selection-requests.process');
+            Route::get('/info-requests', [PropertyInfoRequestController::class, 'index'])->name('info-requests.index');
+            Route::post('/info-requests/{infoRequest}/reply', [PropertyInfoRequestController::class, 'reply'])->name('info-requests.reply');
+            Route::post('/info-requests/{infoRequest}/close', [PropertyInfoRequestController::class, 'close'])->name('info-requests.close');
         });
     });
 
@@ -137,10 +147,12 @@ Route::middleware(['auth', 'check.blocked'])->group(function () {
     Route::get('/properties/{property}/edit', [PropertyController::class, 'edit'])->name('properties.edit');
     Route::put('/properties/{property}', [PropertyController::class, 'update'])->name('properties.update');
     Route::patch('/properties/{property}', [PropertyController::class, 'update']);
+    Route::put('/properties/{property}/owners', [PropertyOwnerController::class, 'update'])->name('properties.owners.update');
     Route::get('/properties/{property}/documents', [PropertyDocumentController::class, 'show'])->name('properties.documents');
     Route::post('/properties/{property}/documents', [PropertyDocumentController::class, 'store'])->name('properties.documents.store');
     Route::post('/properties/{property}/documents/egrn-check', [PropertyDocumentController::class, 'verifyEgrn'])->name('properties.documents.egrn-check');
     Route::post('/properties/{property}/publish', [PropertyController::class, 'publish'])->name('properties.publish');
+    Route::post('/properties/{property}/info-requests', [PropertyInfoRequestController::class, 'store'])->name('properties.info-requests.store');
     Route::delete('/properties/{property}', [PropertyController::class, 'destroy'])->name('properties.destroy');
 
     Route::get('/properties/{property}/buy', [OnlinePurchaseController::class, 'show'])->name('purchase.buy');

@@ -4,11 +4,20 @@
 @section('title', 'Управление объявлениями')
 
 @section('content')
+@php
+    $hasFilters = request()->hasAny(['search', 'type', 'operation', 'status', 'city_id', 'min_price', 'max_price', 'sort']);
+@endphp
 <div class="mb-8">
     <div class="flex items-center justify-between mb-4">
         <div>
             <h1 class="text-4xl font-bold mb-2">Управление объявлениями</h1>
-            <p class="text-gray-600">Всего объявлений: {{ $properties->total() }}</p>
+            <p class="text-gray-600">
+                @if($hasFilters ?? false)
+                    Найдено: {{ $properties->total() }}
+                @else
+                    Всего объявлений: {{ $properties->total() }}
+                @endif
+            </p>
         </div>
         <div class="flex gap-3">
             <a href="{{ route('admin.dashboard') }}" class="btn">
@@ -20,14 +29,69 @@
         </div>
     </div>
     
-    <!-- Поиск -->
-    <div class="card p-4 mb-6">
-        <form method="GET" action="{{ route('admin.properties') }}" class="flex gap-3">
-            <input type="text" name="search" value="{{ request('search') }}" class="form-input flex-1" placeholder="Поиск по названию, описанию, городу, адресу...">
-            <button type="submit" class="btn-primary">Поиск</button>
-            @if(request('search'))
-                <a href="{{ route('admin.properties') }}" class="btn">Сбросить</a>
-            @endif
+    <div class="card p-4 mb-6 catalog-filters">
+        <h2 class="text-sm font-semibold text-slate-800 mb-3">Фильтры</h2>
+        <form method="GET" action="{{ route('admin.properties') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="sm:col-span-2 lg:col-span-4">
+                <label class="form-label" for="admin-prop-search">Поиск</label>
+                <input type="text" id="admin-prop-search" name="search" value="{{ request('search') }}" class="form-input w-full" placeholder="Название, описание, город, адрес…">
+            </div>
+            <div>
+                <label class="form-label" for="admin-prop-status">Статус</label>
+                <select id="admin-prop-status" name="status" class="form-input w-full">
+                    @foreach($statusOptions ?? [] as $value => $label)
+                        <option value="{{ $value }}" {{ request('status') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="admin-prop-type">Тип</label>
+                <select id="admin-prop-type" name="type" class="form-input w-full">
+                    <option value="">Все</option>
+                    @foreach(\App\Models\Property::tipNazvaniya() as $value => $label)
+                        <option value="{{ $value }}" {{ request('type') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="admin-prop-operation">Операция</label>
+                <select id="admin-prop-operation" name="operation" class="form-input w-full">
+                    <option value="">Все</option>
+                    <option value="sale" {{ request('operation') === 'sale' ? 'selected' : '' }}>Продажа</option>
+                    <option value="rent" {{ request('operation') === 'rent' ? 'selected' : '' }}>Аренда</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="admin-prop-city">Город</label>
+                <select id="admin-prop-city" name="city_id" class="form-input w-full">
+                    <option value="">Все города</option>
+                    @foreach($cities ?? [] as $city)
+                        <option value="{{ $city->id }}" {{ (string) request('city_id') === (string) $city->id ? 'selected' : '' }}>{{ $city->nazvanie }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="admin-prop-min-price">Цена от (₽)</label>
+                <input type="number" id="admin-prop-min-price" name="min_price" value="{{ request('min_price') }}" min="0" class="form-input w-full" placeholder="0">
+            </div>
+            <div>
+                <label class="form-label" for="admin-prop-max-price">Цена до (₽)</label>
+                <input type="number" id="admin-prop-max-price" name="max_price" value="{{ request('max_price') }}" min="0" class="form-input w-full">
+            </div>
+            <div>
+                <label class="form-label" for="admin-prop-sort">Сортировка</label>
+                <select id="admin-prop-sort" name="sort" class="form-input w-full">
+                    @foreach(\App\Support\PropertyCatalogFilter::sortOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ request('sort', 'newest') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="sm:col-span-2 lg:col-span-4 flex flex-wrap gap-3">
+                <button type="submit" class="btn-primary">Применить</button>
+                @if($hasFilters)
+                    <a href="{{ route('admin.properties') }}" class="btn">Сбросить</a>
+                @endif
+            </div>
         </form>
     </div>
 
@@ -38,7 +102,7 @@
         <span class="text-sm font-medium text-slate-700 w-full sm:w-auto">Массовые действия:</span>
         <select name="status_kod" class="form-input w-full sm:w-48" required>
             @foreach($propertyStatuses ?? [] as $st)
-                <option value="{{ $st->kod }}">{{ $st->nazvanie }} ({{ $st->kod }})</option>
+                <option value="{{ $st->kod }}">{{ $st->nazvanie }}</option>
             @endforeach
         </select>
         <label class="flex items-center gap-2 text-sm">

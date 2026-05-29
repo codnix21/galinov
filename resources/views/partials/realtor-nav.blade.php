@@ -7,4 +7,6 @@
     <a href="{{ route('realtor.collections.index') }}" class="px-3 py-2 rounded-xl text-sm {{ request()->routeIs('realtor.collections.*') ? 'bg-brand-100 text-brand-900 font-medium' : 'text-slate-600 hover:bg-slate-50' }}">Подборки</a>
     <a href="{{ route('realtor.properties') }}" class="px-3 py-2 rounded-xl text-sm {{ request()->routeIs('realtor.properties') ? 'bg-brand-100 text-brand-900 font-medium' : 'text-slate-600 hover:bg-slate-50' }}">Мои объекты</a>
     <a href="{{ route('realtor.inquiries.index') }}" class="px-3 py-2 rounded-xl text-sm {{ request()->routeIs('realtor.inquiries.*') ? 'bg-brand-100 text-brand-900 font-medium' : 'text-slate-600 hover:bg-slate-50' }}">Заявки</a>
+    <a href="{{ route('realtor.selection-requests.index') }}" class="px-3 py-2 rounded-xl text-sm {{ request()->routeIs('realtor.selection-requests.*') ? 'bg-brand-100 text-brand-900 font-medium' : 'text-slate-600 hover:bg-slate-50' }}">Подбор</a>
+    <a href="{{ route('realtor.info-requests.index') }}" class="px-3 py-2 rounded-xl text-sm {{ request()->routeIs('realtor.info-requests.*') ? 'bg-brand-100 text-brand-900 font-medium' : 'text-slate-600 hover:bg-slate-50' }}">Доп. инфо</a>
 </nav>

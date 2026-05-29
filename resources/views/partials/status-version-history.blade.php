@@ -9,7 +9,7 @@
             <li class="flex gap-3 text-sm border-l-2 border-brand-200 pl-3">
                 <span class="font-mono text-brand-700 shrink-0">v{{ $v->nomer_versii }}</span>
                 <div>
-                    <span class="font-medium">{{ $v->status_nazvanie ?? $v->status_kod ?? '—' }}</span>
+                    <span class="font-medium">{{ $v->displayStatusLabel() }}</span>
                     @if($v->status_kod)<span class="text-gray-500">({{ $v->status_kod }})</span>@endif
                     <div class="text-xs text-gray-500 mt-0.5">
                         {{ $v->sozdano_at?->format('d.m.Y H:i') }}

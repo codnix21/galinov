@@ -30,7 +30,7 @@ class ModerationController extends Controller
     public function index(Request $request): View
     {
         $pending = PropertyStatus::where('kod', 'pending_review')->first();
-        $qb = Property::query()->with(['user', 'realtor', 'images', 'cityRelation']);
+        $qb = Property::query()->with(['user.personalData', 'realtor', 'images', 'cityRelation']);
         if ($pending) {
             $qb->where('status_obyavleniya_id', $pending->id);
         } else {

@@ -99,7 +99,9 @@
                 @php
                     $stepNum = $index + 1;
                     $ok = in_array($tip, $docStatus['verified'], true);
-                    $checking = ($documents->get($tip)?->first()?->status ?? '') === 'checking';
+                    $stepStatus = $documents->get($tip)?->first()?->status ?? '';
+                    $checking = $stepStatus === 'checking';
+                    $pending = in_array($tip, $docStatus['pending'], true);
                     $rejected = in_array($tip, $docStatus['rejected'], true);
                     $isCurrent = $currentStepTip === $tip;
                     $canUploadStep = $canUpload && \App\Support\PropertyDocumentRules::canOwnerUploadStep($property, $tip);
@@ -110,6 +112,11 @@
                     $okFromProfile = $tip === 'passport' && !empty($profilePassportVerified) && !$hasPropertyFile;
                     $stepDoc = $documents->get($tip)?->first()
                         ?? ($okFromProfile ? $profilePassportDocument : null);
+                    $stepDataLines = $stepDoc
+                        ? $stepDoc->dataDisplayLines()
+                        : ($tip === 'passport' && $property->user?->personalData
+                            ? \App\Support\DocumentDataFields::personalDataLines($property->user->personalData)
+                            : []);
                     $stepViewUrl = $stepDoc?->view_url;
                     $stepEgrnJsonOnly = $stepDoc
                         && \App\Support\DocumentStorage::isJsonRegistryFile($stepDoc->put_fajla)
@@ -140,12 +147,14 @@
                                 </p>
                             @elseif($checking)
                                 <p class="text-xs text-slate-500 mt-0.5">Идёт автопроверка…</p>
+                            @elseif($pending)
+                                <p class="text-xs text-amber-700 mt-0.5 font-medium">На проверке — обновите страницу через несколько секунд</p>
                             @elseif($rejected)
                                 <p class="text-xs text-red-600 mt-0.5">Отклонён — загрузите снова</p>
                             @elseif($locked && $prevLabel)
                                 <p class="text-xs text-slate-500 mt-0.5">Сначала: {{ $prevLabel }}</p>
-                            @elseif($isCurrent)
-                                <p class="text-xs text-brand-800 mt-0.5 font-medium">Текущий шаг — заполните ниже</p>
+                            @elseif($isCurrent && !$pending)
+                                <p class="text-xs text-brand-800 mt-0.5 font-medium">Текущий шаг — заполните поля и загрузите файл ниже</p>
                             @else
                                 <p class="text-xs text-slate-500 mt-0.5">Не загружен</p>
                             @endif
@@ -153,6 +162,10 @@
                                 'viewUrl' => $stepViewUrl,
                                 'egrnJsonOnly' => $stepEgrnJsonOnly,
                                 'hasPathButMissing' => $stepDoc && $stepDoc->put_fajla && !$stepViewUrl && !$stepEgrnJsonOnly,
+                            ])
+                            @include('partials.document-data-display', [
+                                'lines' => $stepDataLines,
+                                'title' => $stepDataLines !== [] ? 'Заполненные реквизиты' : null,
                             ])
                         </div>
                     </div>
@@ -172,22 +185,21 @@
                                     (официальный сайт, без встраивания в CRM).
                                 </p>
 
+                                @php
+                                    $egrnValues = old('dannye', $stepDoc?->dannye_json ?? []);
+                                    if (empty($egrnValues['kadastrovy_nomer']) && $property->kadastrovy_nomer) {
+                                        $egrnValues['kadastrovy_nomer'] = $property->kadastrovy_nomer;
+                                    }
+                                @endphp
+
                                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Способ 1 — кадастровый номер</p>
                                 <form method="POST" action="{{ route('properties.documents.egrn-check', $property) }}" class="space-y-3 mb-5">
                                     @csrf
-                                    <div>
-                                        <label for="kadastrovy_nomer_{{ $tip }}" class="form-label">Кадастровый номер</label>
-                                        <input
-                                            type="text"
-                                            id="kadastrovy_nomer_{{ $tip }}"
-                                            name="kadastrovy_nomer"
-                                            class="form-input font-mono"
-                                            value="{{ old('kadastrovy_nomer', $property->kadastrovy_nomer) }}"
-                                            placeholder="38:36:000000:12345"
-                                            autocomplete="off"
-                                            required
-                                        >
-                                    </div>
+                                    @include('partials.document-data-fields', [
+                                        'tip' => $tip,
+                                        'values' => $egrnValues,
+                                        'idPrefix' => 'egrn_auto_' . $tip,
+                                    ])
                                     <button type="submit" class="btn-primary w-full sm:w-auto">
                                         {{ ($rejected || $ok) ? 'Повторить проверку по номеру' : 'Проверить по номеру' }}
                                     </button>
@@ -197,8 +209,13 @@
                                 <form method="POST" action="{{ route('properties.documents.store', $property) }}" enctype="multipart/form-data" class="space-y-3">
                                     @csrf
                                     <input type="hidden" name="tip" value="{{ $tip }}">
+                                    @include('partials.document-data-fields', [
+                                        'tip' => $tip,
+                                        'values' => $egrnValues,
+                                        'idPrefix' => 'egrn_file_' . $tip,
+                                    ])
                                     <div>
-                                        <label for="egrn_file_{{ $tip }}" class="form-label">Файл выписки ЕГРН</label>
+                                        <label for="egrn_file_{{ $tip }}" class="form-label">Файл выписки ЕГРН *</label>
                                         <input
                                             type="file"
                                             id="egrn_file_{{ $tip }}"
@@ -208,41 +225,28 @@
                                             accept=".pdf,.jpg,.jpeg,.png"
                                         >
                                     </div>
-                                    <div>
-                                        <label for="egrn_kad_{{ $tip }}" class="form-label">Кадастровый номер (если есть в выписке)</label>
-                                        <input
-                                            type="text"
-                                            id="egrn_kad_{{ $tip }}"
-                                            name="kadastrovy_nomer"
-                                            class="form-input font-mono"
-                                            value="{{ old('kadastrovy_nomer', $property->kadastrovy_nomer) }}"
-                                            placeholder="Необязательно"
-                                            autocomplete="off"
-                                        >
-                                    </div>
-                                    <div>
-                                        <label for="nomer_vypiski_{{ $tip }}" class="form-label">Номер выписки ЕГРН</label>
-                                        <input
-                                            type="text"
-                                            id="nomer_vypiski_{{ $tip }}"
-                                            name="nomer_vypiski"
-                                            class="form-input"
-                                            value="{{ old('nomer_vypiski') }}"
-                                            placeholder="Необязательно"
-                                            autocomplete="off"
-                                        >
-                                    </div>
                                     <button type="submit" class="btn w-full sm:w-auto border-brand-300 text-brand-800 hover:bg-brand-50">
                                         {{ $ok ? 'Заменить выписку' : 'Загрузить выписку и проверить' }}
                                     </button>
                                 </form>
                             @else
-                                <p class="text-sm text-slate-600 mb-3">Загрузите скан или фото (PDF, JPG).</p>
+                                @php
+                                    $docValues = old('dannye', $stepDoc?->dannye_json ?? []);
+                                @endphp
                                 <form method="POST" action="{{ route('properties.documents.store', $property) }}" enctype="multipart/form-data" class="space-y-3">
                                     @csrf
                                     <input type="hidden" name="tip" value="{{ $tip }}">
+                                    @if(\App\Support\DocumentDataFields::hasFields($tip))
+                                        @include('partials.document-data-fields', [
+                                            'tip' => $tip,
+                                            'values' => $docValues,
+                                            'idPrefix' => 'doc_' . $tip,
+                                        ])
+                                    @else
+                                        <p class="text-sm text-slate-600 mb-1">Загрузите скан или фото (PDF, JPG).</p>
+                                    @endif
                                     <div>
-                                        <label for="file_{{ $tip }}" class="form-label">Файл</label>
+                                        <label for="file_{{ $tip }}" class="form-label">Файл документа *</label>
                                         <input
                                             type="file"
                                             id="file_{{ $tip }}"

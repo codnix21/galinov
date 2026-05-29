@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Property;
 use App\Models\PropertyShowing;
+use App\Models\PropertyStatus;
 use App\Models\RealtorClient;
 use App\Services\AppNotifier;
 use App\Support\RealtorCrm;
@@ -30,9 +32,18 @@ class RealtorShowingController extends Controller
         $clients = RealtorClient::query()->with('client');
         RealtorScope::forRealtor($clients);
 
+        $activeStatusId = PropertyStatus::idFor('active');
+        $propertyOptions = Property::query()
+            ->when($activeStatusId, fn ($q) => $q->where('status_obyavleniya_id', $activeStatusId))
+            ->orderBy('nazvanie')
+            ->limit(200)
+            ->get(['id', 'nazvanie', 'adres_ulitsy', 'gorod_id']);
+
         return view('realtor.showings.index', [
             'showings' => $showings,
             'clientOptions' => $clients->get(),
+            'propertyOptions' => $propertyOptions,
+            'preselectedClientId' => $request->integer('klient_id') ?: null,
             'resultOptions' => RealtorCrm::showingResults(),
         ]);
     }
@@ -64,6 +75,17 @@ class RealtorShowingController extends Controller
         ]);
 
         AppNotifier::showingScheduled($showing);
+
+        $clientAssignment = RealtorClient::query()
+            ->where('rieltor_id', $rieltorId)
+            ->where('klient_id', $validated['klient_id'])
+            ->first();
+
+        if ($clientAssignment) {
+            return redirect()
+                ->route('realtor.clients.show', $clientAssignment)
+                ->with('success', 'Показ запланирован');
+        }
 
         return back()->with('success', 'Показ запланирован');
     }

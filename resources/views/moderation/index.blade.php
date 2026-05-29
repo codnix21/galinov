@@ -113,6 +113,12 @@
                                         @elseif($doc['verified'])
                                             <span class="text-gray-500 text-xs">файл на сервере не найден — попросите перезагрузить</span>
                                         @endif
+                                        @if(!empty($doc['data_lines']))
+                                            @include('partials.document-data-display', [
+                                                'lines' => $doc['data_lines'],
+                                                'title' => null,
+                                            ])
+                                        @endif
                                     </li>
                                 @endforeach
                             </ul>

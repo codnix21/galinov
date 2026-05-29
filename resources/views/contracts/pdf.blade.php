@@ -9,10 +9,12 @@
 <body>
     @php
         $isRent = ($contract->tip ?? $contract->type) === 'rent';
+        $sellers = $contract->resolvedSellers();
         $ownerParty = $contract->owner ?? $contract->resolvedOwner();
         $buyerParty = $contract->buyer ?? $contract->client;
         $notesSection = $contract->primechaniya ? 5 : 4;
         $signSection = $contract->primechaniya ? 6 : 5;
+        $sellerLabel = $isRent ? 'арендодатель' : 'продавец';
     @endphp
 
     <div class="header">
@@ -92,6 +94,41 @@
     <div class="section parties">
         <div class="section-title">3. Стороны договора</div>
 
+        @if($sellers->count() > 1)
+            @foreach($sellers as $idx => $seller)
+                @php $sellerUser = $seller->user; @endphp
+                <div class="party">
+                    <div class="party-title">
+                        Сторона 1.{{ $idx + 1 }} — {{ $sellerLabel }}
+                        @if((int) $seller->polzovatel_id === (int) $contract->vladelets_id) (основной) @endif:
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-row">
+                            <div class="info-label">ФИО:</div>
+                            <div class="info-value">{{ $seller->fio() }}</div>
+                        </div>
+                        @if($seller->dolya_procent)
+                        <div class="info-row">
+                            <div class="info-label">Доля:</div>
+                            <div class="info-value">{{ number_format((float) $seller->dolya_procent, 2, ',', ' ') }} %</div>
+                        </div>
+                        @endif
+                        @if($sellerUser)
+                        <div class="info-row">
+                            <div class="info-label">Email:</div>
+                            <div class="info-value">{{ $sellerUser->email_polzovatela }}</div>
+                        </div>
+                        @if($sellerUser->telefon)
+                        <div class="info-row">
+                            <div class="info-label">Телефон:</div>
+                            <div class="info-value">{{ $sellerUser->telefon }}</div>
+                        </div>
+                        @endif
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        @else
         <div class="party">
             <div class="party-title">Сторона 1 — {{ $isRent ? 'арендодатель (владелец)' : 'продавец (владелец)' }}:</div>
             <div class="info-grid">
@@ -115,6 +152,7 @@
                 @endif
             </div>
         </div>
+        @endif
 
         <div class="party">
             <div class="party-title">Сторона 2 — {{ $isRent ? 'арендатор' : 'покупатель' }}:</div>

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\TextCensor;
 use App\Services\AppNotifier;
 use App\Services\ContractEcpService;
+use App\Services\PropertyOwnersService;
 use App\Support\ContractApproval;
 use App\Support\ContractFormOptions;
 use App\Support\EnsureContractPartiesSchema;
@@ -200,6 +201,8 @@ class ContractController extends Controller
         }
 
         $property = Property::findOrFail($request->input('nedvizhimost_id'));
+        $property->load('owners');
+        PropertyOwnersService::ensureDefaultOwner($property);
         $operation = $property->operatsiya ?? $property->operation;
 
         if (!in_array($operation, ['sale', 'rent'], true)) {
@@ -209,7 +212,7 @@ class ContractController extends Controller
         $rules = [
             'nedvizhimost_id' => 'required|exists:nedvizhimost,id',
             'vladelets_id' => 'required|exists:polzovateli,id',
-            'pokupatel_id' => 'required|exists:polzovateli,id|different:vladelets_id',
+            'pokupatel_id' => 'required|exists:polzovateli,id',
             'tsena' => 'required|numeric|min:0',
             'data_nachala' => 'required|date',
             'primechaniya' => 'nullable|string',
@@ -228,9 +231,7 @@ class ContractController extends Controller
             $rules['rieltor_id'] = 'required|exists:polzovateli,id';
         }
 
-        $validated = $request->validate($rules, [
-            'pokupatel_id.different' => 'Владелец и покупатель должны быть разными пользователями.',
-        ]);
+        $validated = $request->validate($rules);
 
         if (!empty($validated['primechaniya'])) {
             $noteErrors = TextCensor::fieldError('primechaniya', $validated['primechaniya']);
@@ -247,6 +248,25 @@ class ContractController extends Controller
         $vladeletsId = (int) $validated['vladelets_id'];
         $pokupatelId = (int) $validated['pokupatel_id'];
         $realtorId = (int) $validated['rieltor_id'];
+
+        if (PropertyOwnersService::buyerAmongOwners($property, $pokupatelId)) {
+            return redirect()->back()->withErrors([
+                'pokupatel_id' => 'Покупатель не может быть собственником этого объекта.',
+            ])->withInput();
+        }
+
+        if ($vladeletsId === $pokupatelId) {
+            return redirect()->back()->withErrors([
+                'pokupatel_id' => 'Покупатель и основной продавец должны быть разными лицами.',
+            ])->withInput();
+        }
+
+        $ownerIds = PropertyOwnersService::ownerUserIds($property);
+        if ($ownerIds->isNotEmpty() && !$ownerIds->contains($vladeletsId)) {
+            return redirect()->back()->withErrors([
+                'vladelets_id' => 'Укажите основного собственника из списка владельцев объекта.',
+            ])->withInput();
+        }
 
         if ($user->isClient()) {
             if ($validated['client_party'] === 'owner' && $vladeletsId !== (int) $user->id) {
@@ -274,7 +294,6 @@ class ContractController extends Controller
             'nedvizhimost_id' => $validated['nedvizhimost_id'],
             'vladelets_id' => $vladeletsId,
             'pokupatel_id' => $pokupatelId,
-            'klient_id' => $pokupatelId,
             'rieltor_id' => $realtorId,
             'sozdal_kak' => $sozdalKak,
             'sozdal_storona' => $sozdalStorona ?? null,
@@ -307,7 +326,7 @@ class ContractController extends Controller
         $user = Auth::user();
         $this->assertContractViewAccess($user, $contract);
 
-        $contract->load(['property', 'owner', 'buyer', 'realtor']);
+        $contract->load(['property', 'owner', 'buyer', 'realtor', 'sellers.user']);
 
         $ecpService = app(ContractEcpService::class);
         $ecpService->autoSignOwnerAndRealtor($contract);
@@ -390,7 +409,7 @@ class ContractController extends Controller
         $user = Auth::user();
         $this->assertContractViewAccess($user, $contract);
 
-        $contract->load(['property', 'owner', 'buyer', 'client', 'realtor']);
+        $contract->load(['property', 'owner', 'buyer', 'client', 'realtor', 'sellers.user']);
 
         $pdf = Pdf::loadView('contracts.pdf', compact('contract'));
         $filename = 'dogovor_'.$contract->id.'_'.date('Y-m-d').'.pdf';
@@ -407,7 +426,7 @@ class ContractController extends Controller
             abort(404);
         }
 
-        $contract->load(['property.user', 'property', 'owner', 'buyer', 'realtor']);
+        $contract->load(['property.user', 'property', 'owner', 'buyer', 'realtor', 'sellers.user']);
 
         return view('contracts.print-rent', compact('contract'));
     }

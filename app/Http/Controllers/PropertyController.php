@@ -12,19 +12,23 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Property;
+use App\Models\PropertyInfoRequest;
 use App\Services\AppNotifier;
 use App\Models\RealtorClient;
 use App\Support\ContractFormOptions;
 use App\Support\RealtorScope;
 use App\Support\PropertyDocumentRules;
 use App\Support\PropertyFloorRules;
+use App\Support\PropertyHouseAttributes;
 use App\Support\PropertyCatalogFilter;
+use App\Support\PropertyCatalogSimilar;
 use App\Support\PropertyListingAuthor;
 use App\Models\PropertyImage;
 use App\Models\ZhurnalIzmeneniy;
 use App\Models\PropertyStatus;
 use App\Services\TextCensor;
 use App\Services\YandexGeocoder;
+use App\Services\PropertyOwnersService;
 use App\Models\UserDocument;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -123,7 +127,25 @@ class PropertyController extends Controller
         $cities = $this->catalogCities($activeId);
         $this->attachFavorites($properties);
 
-        return view('properties.index', compact('properties', 'cities'));
+        $hasActiveFilters = PropertyCatalogSimilar::hasActiveFilters($request);
+        $similarProperties = collect();
+        $capturedFilters = PropertyCatalogSimilar::captureFilters($request);
+
+        if ($properties->isEmpty() && $hasActiveFilters) {
+            $similarProperties = PropertyCatalogSimilar::query($request, $activeId)
+                ->with(['user', 'images', 'cityRelation'])
+                ->limit(6)
+                ->get();
+            $this->attachFavorites($similarProperties);
+        }
+
+        return view('properties.index', compact(
+            'properties',
+            'cities',
+            'hasActiveFilters',
+            'similarProperties',
+            'capturedFilters',
+        ));
     }
 
     /**
@@ -199,7 +221,7 @@ class PropertyController extends Controller
         }
         $favoriteIds = Auth::user()->favorites()->pluck('nedvizhimost_id')->toArray();
         foreach ($properties as $property) {
-            $property->is_favorite = in_array($property->id, $favoriteIds);
+            $property->is_favorite = in_array($property->id, $favoriteIds, true);
         }
     }
 
@@ -261,10 +283,13 @@ class PropertyController extends Controller
             'status_obyavleniya' => 'nullable|in:draft,active,sold,inactive,rented,pending_review',
             'images' => 'nullable|array|max:10',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,bmp|max:5120', // 5MB max per image
+            ...PropertyHouseAttributes::validationRules(),
         ], [
             'gorod.required' => 'Укажите город: выберите населённый пункт из списка подсказок.',
             'adres_ulitsy.regex' => 'Укажите улицу и номер дома (в адресе должен быть номер).',
         ]);
+
+        $validated = PropertyHouseAttributes::mergeFromRequest($request, $validated);
 
         // Должен быть авторизован и существовать в polzovateli
         if (!Auth::check()) {
@@ -332,6 +357,8 @@ class PropertyController extends Controller
             return $property;
         });
 
+        PropertyOwnersService::ensureDefaultOwner($property);
+
         // Разные сообщения пользователю в зависимости от выбранного статуса
         if ($status->kod === 'draft') {
             return redirect()->route('properties.documents', $property)
@@ -354,6 +381,8 @@ class PropertyController extends Controller
      */
     public function show(Property $property): View
     {
+        $listingUnavailable = null;
+
         // Ограничения видимости для не-админов
         if (!Auth::user() || !Auth::user()->isAdmin()) {
             $status = $property->status_obyavleniya ?? $property->status;
@@ -368,9 +397,11 @@ class PropertyController extends Controller
                 abort(404, 'Объявление на модерации');
             }
 
-            // Продано или сдано — для остальных как «не найдено»
-            if ($status === 'sold' || ($status === 'rented' && !$isOwner)) {
-                abort(404, 'Объявление больше не доступно');
+            // Продано / сдано — карточка доступна для просмотра, но без новых заявок
+            if ($status === 'sold' && !$isOwner && !$staff) {
+                $listingUnavailable = 'sold';
+            } elseif ($status === 'rented' && !$isOwner && !$staff) {
+                $listingUnavailable = 'rented';
             }
         }
         
@@ -426,6 +457,21 @@ class PropertyController extends Controller
             $statusVersions = \App\Services\ProcessVersionService::history('property', (int) $property->id);
         }
 
+        $isActiveListing = ($property->status_obyavleniya ?? $property->status ?? '') === 'active';
+        $canAskInfo = Auth::check()
+            && $isActiveListing
+            && (int) Auth::id() !== (int) ($property->polzovatel_id ?? 0);
+
+        $infoRequests = collect();
+        if (Auth::check()) {
+            $infoQuery = PropertyInfoRequest::with(['messages.user'])
+                ->where('nedvizhimost_id', $property->id);
+            if (!Auth::user()->isStaff()) {
+                $infoQuery->where('polzovatel_id', Auth::id());
+            }
+            $infoRequests = $infoQuery->orderByDesc('sozdano_at')->limit(15)->get();
+        }
+
         return view('properties.show', compact(
             'property',
             'istoriyaZhurnala',
@@ -437,6 +483,9 @@ class PropertyController extends Controller
             'profileVerifiedTips',
             'canPublishToModeration',
             'canManage',
+            'canAskInfo',
+            'infoRequests',
+            'listingUnavailable',
         ));
     }
 
@@ -450,8 +499,10 @@ class PropertyController extends Controller
             abort(403);
         }
 
-        $property->load('images');
-        return view('properties.edit', compact('property'));
+        $property->load(['images', 'owners.user']);
+        $canManage = true;
+
+        return view('properties.edit', compact('property', 'canManage'));
     }
 
     /**
@@ -487,10 +538,17 @@ class PropertyController extends Controller
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,bmp|max:5120', // 5MB max per image
             'delete_images' => 'nullable|array',
             'delete_images.*' => 'exists:izobrazheniya_nedvizhimosti,id',
+            ...PropertyHouseAttributes::validationRules(),
         ], [
             'gorod.required' => 'Укажите город: выберите населённый пункт из списка подсказок.',
             'adres_ulitsy.regex' => 'Укажите улицу и номер дома (в адресе должен быть номер).',
+            'status_obyavleniya.required' => 'Выберите статус объявления.',
+            'status_obyavleniya.in' => 'Выбран недопустимый статус объявления.',
+        ], [
+            'status_obyavleniya' => 'статус объявления',
         ]);
+
+        $validated = PropertyHouseAttributes::mergeFromRequest($request, $validated);
 
         // Проверка названия и описания на запрещённые слова
         $profanityErrors = TextCensor::propertyFieldErrors($validated['nazvanie'], $validated['opisanie']);

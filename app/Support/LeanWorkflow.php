@@ -54,7 +54,7 @@ class LeanWorkflow
                     $actions[] = self::action('Договоры на подпись (' . $cnt . ')', route('contracts.pending'), 'warn', null);
                 }
             }
-            $newInquiries = PropertyInquiry::where('status', 'new')->count();
+            $newInquiries = PropertyInquiry::whereStatusKod('new')->count();
             if ($newInquiries > 0) {
                 $actions[] = self::action('Новые заявки (' . $newInquiries . ')', route('realtor.inquiries.index'), 'warn', 'Ответить в течение SLA');
             }
@@ -101,10 +101,6 @@ class LeanWorkflow
 
             $actions[] = self::action('Каталог', route('properties.index'), 'default', null);
             $actions[] = self::action('Купить онлайн', route('properties.index', ['operation' => 'sale']), 'primary', null);
-        }
-
-        if ($user->isStaff()) {
-            $actions[] = self::action('Схема процессов', route('pages.process'), 'default', 'Для отчёта и обучения');
         }
 
         return array_slice($actions, 0, 6);

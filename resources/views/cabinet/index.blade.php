@@ -163,11 +163,14 @@
 
 @if($user->isClient())
     <!-- Мои договоры -->
-    <div class="mb-6 flex items-center justify-between mt-12">
-        <h2 class="text-2xl font-bold">Мои сделки</h2>
-        <a href="{{ route('properties.index', ['operation' => 'sale']) }}" class="btn-primary">
-            Каталог — купить онлайн
-        </a>
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3 mt-12">
+        <h2 class="text-2xl font-bold">Покупка и подбор</h2>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('properties.selection-request.create') }}" class="btn">Заявка на подбор</a>
+            <a href="{{ route('properties.index', ['operation' => 'sale']) }}" class="btn-primary">
+                Каталог — купить онлайн
+            </a>
+        </div>
     </div>
     <p class="text-sm text-slate-600 mb-4">
         Договор создаётся автоматически при онлайн-покупке или экспресс-сделке на карточке объявления.

@@ -16,7 +16,7 @@ class UserProfileDocuments
         return UserDocument::query()
             ->whereNull('nedvizhimost_id')
             ->where('polzovatel_id', $userId)
-            ->where('status', 'verified')
+            ->whereStatusKod('verified')
             ->pluck('tip')
             ->all();
     }

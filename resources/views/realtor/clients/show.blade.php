@@ -5,6 +5,10 @@
 @section('content')
 @include('partials.realtor-nav')
 
+@if(session('success'))
+    <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900 mb-4">{{ session('success') }}</div>
+@endif
+
 <div class="mb-6">
     <a href="{{ route('realtor.clients.index') }}" class="text-sm text-brand-700 hover:underline">← К списку клиентов</a>
     <h1 class="text-3xl font-bold mt-2">
@@ -74,8 +78,36 @@
                 @empty
                     <p class="text-gray-500 text-sm">Нет показов</p>
                 @endforelse
-                <a href="{{ route('realtor.showings.index') }}" class="text-sm text-brand-700 mt-2 inline-block">Все показы →</a>
+                <a href="{{ route('realtor.showings.index', ['klient_id' => $assignment->klient_id]) }}" class="text-sm text-brand-700 mt-2 inline-block">Все показы →</a>
             </div>
+        </div>
+
+        <div class="card p-6">
+            <h2 class="font-bold mb-4">Запланировать показ</h2>
+            <form method="POST" action="{{ route('realtor.showings.store') }}" class="space-y-3">
+                @csrf
+                <input type="hidden" name="klient_id" value="{{ $assignment->klient_id }}">
+                <p class="text-sm text-gray-600">
+                    Клиент: <strong>{{ trim($assignment->client->familia.' '.$assignment->client->imya) }}</strong>
+                </p>
+                <div>
+                    <label class="form-label">Объект</label>
+                    <select name="nedvizhimost_id" class="form-input" required>
+                        <option value="">— выберите объявление —</option>
+                        @foreach($propertyOptions as $p)
+                            <option value="{{ $p->id }}" @selected((int) old('nedvizhimost_id') === (int) $p->id)>
+                                {{ $p->nazvanie }}@if($p->adres_ulitsy) — {{ $p->adres_ulitsy }}@endif
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Дата и время</label>
+                    <input type="datetime-local" name="naznacheno_na" class="form-input" value="{{ old('naznacheno_na') }}" required>
+                </div>
+                <textarea name="zametki" class="form-input" rows="2" placeholder="Комментарий">{{ old('zametki') }}</textarea>
+                <button type="submit" class="btn-primary">Создать показ</button>
+            </form>
         </div>
     </div>
 </div>

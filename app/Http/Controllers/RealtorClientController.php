@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contract;
+use App\Models\Property;
+use App\Models\PropertyStatus;
 use App\Models\RealtorClient;
 use App\Models\User;
 use App\Services\AppNotifier;
@@ -23,7 +25,7 @@ class RealtorClientController extends Controller
         RealtorScope::forRealtor($query);
 
         if ($request->filled('status')) {
-            $query->where('status', $request->string('status')->toString());
+            $query->whereStatusKod($request->string('status')->toString());
         }
 
         if ($request->filled('search')) {
@@ -64,8 +66,7 @@ class RealtorClientController extends Controller
         $contracts = Contract::query()
             ->where(function ($q) use ($clientId) {
                 $q->where('vladelets_id', $clientId)
-                    ->orWhere('pokupatel_id', $clientId)
-                    ->orWhere('klient_id', $clientId);
+                    ->orWhere('pokupatel_id', $clientId);
             })
             ->with(['property', 'realtor'])
             ->latest()
@@ -87,11 +88,19 @@ class RealtorClientController extends Controller
             ->limit(10)
             ->get();
 
+        $activeStatusId = PropertyStatus::idFor('active');
+        $propertyOptions = Property::query()
+            ->when($activeStatusId, fn ($q) => $q->where('status_obyavleniya_id', $activeStatusId))
+            ->orderBy('nazvanie')
+            ->limit(200)
+            ->get(['id', 'nazvanie', 'adres_ulitsy']);
+
         return view('realtor.clients.show', [
             'assignment' => $realtorClient,
             'contracts' => $contracts,
             'tasks' => $tasks,
             'showings' => $showings,
+            'propertyOptions' => $propertyOptions,
             'statusOptions' => RealtorCrm::clientStatuses(),
         ]);
     }

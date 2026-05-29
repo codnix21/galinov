@@ -1,11 +1,11 @@
 {{-- Блок смены ФИО, телефона, аватара. --}}
 <section>
     <header>
-        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+        <h2 class="text-lg font-semibold text-slate-900">
             Информация профиля
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+        <p class="mt-1 text-sm text-slate-600">
             Обновите информацию о вашем профиле и адрес электронной почты.
         </p>
     </header>
@@ -83,16 +83,16 @@
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
                 <div>
-                    <p class="text-sm mt-2 text-gray-800 dark:text-gray-200">
+                    <p class="text-sm mt-2 text-slate-800">
                         Ваш адрес электронной почты не подтвержден.
 
-                        <button form="send-verification" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
+                        <button form="send-verification" type="submit" class="underline text-sm text-brand-700 hover:text-brand-800 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40">
                             Нажмите здесь, чтобы отправить письмо с подтверждением повторно.
                         </button>
                     </p>
 
                     @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 font-medium text-sm text-green-600 dark:text-green-400">
+                        <p class="mt-2 font-medium text-sm text-green-700">
                             Новая ссылка для подтверждения была отправлена на ваш адрес электронной почты.
                         </p>
                     @endif
@@ -106,7 +106,7 @@
             @error('biografiya')
                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
             @enderror
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Расскажите о себе (максимум 1000 символов)</p>
+            <p class="mt-1 text-sm text-slate-600">Расскажите о себе (максимум 1000 символов)</p>
         </div>
 
         <div>
@@ -120,14 +120,14 @@
             @error('avatar_polzovatela')
                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
             @enderror
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Загрузите фотографию профиля (максимум 2MB)</p>
+            <p class="mt-1 text-sm text-slate-600">Загрузите фотографию профиля (максимум 2MB)</p>
         </div>
 
         <div class="flex items-center gap-4">
             <button type="submit" class="btn-primary">Сохранить</button>
 
             @if (session('status') === 'profile-updated')
-                <p class="text-sm text-green-600">
+                <p class="text-sm text-green-700">
                     Сохранено.
                 </p>
             @endif

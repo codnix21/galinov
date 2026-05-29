@@ -10,7 +10,7 @@
         ['key' => 'draft', 'label' => 'Черновик'],
         ['key' => 'docs', 'label' => 'Документы'],
         ['key' => 'moderation', 'label' => 'Модерация'],
-        ['key' => 'published', 'label' => 'Опубликовано'],
+        ['key' => 'published', 'label' => 'В каталоге'],
     ];
 
     $current = match (true) {
@@ -54,8 +54,8 @@
                 $currentIndex = array_search($current, array_column($steps, 'key'), true);
                 $done = $stepIndex !== false && $currentIndex !== false && $stepIndex < $currentIndex;
             @endphp
-            <li class="rounded-xl border px-2 py-2.5 text-center text-xs sm:text-sm min-h-[3rem] flex items-center justify-center {{ $isCurrent ? 'border-brand-400 bg-brand-50 ring-1 ring-brand-400/30' : ($done ? 'border-green-200 bg-green-50/60' : 'border-slate-200 bg-slate-50') }}">
-                <span class="font-medium leading-tight {{ $isCurrent ? 'text-brand-900' : ($done ? 'text-green-800' : 'text-slate-600') }}">
+            <li class="rounded-xl border px-2 py-2.5 text-center min-h-[3.25rem] min-w-0 flex items-center justify-center {{ $isCurrent ? 'border-brand-400 bg-brand-50 ring-1 ring-brand-400/30' : ($done ? 'border-green-200 bg-green-50/60' : 'border-slate-200 bg-slate-50') }}">
+                <span class="block w-full font-medium text-xs leading-tight text-center {{ $isCurrent ? 'text-brand-900' : ($done ? 'text-green-800' : 'text-slate-700') }}">
                     {{ $s['label'] }}
                 </span>
             </li>

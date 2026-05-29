@@ -1,0 +1,37 @@
+@extends('layouts.app')
+
+@section('title', 'Заявки на подбор')
+
+@section('content')
+@include('partials.realtor-nav')
+
+<h1 class="text-3xl font-bold mb-2">Заявки на подбор</h1>
+<p class="text-sm text-gray-600 mb-6">Клиенты оставили заявку из каталога, когда по фильтрам ничего не нашлось.</p>
+
+@forelse($requests as $req)
+    <div class="card p-5 mb-4 {{ $req->status === 'new' ? 'border-amber-300 border-2' : '' }}">
+        <div class="flex flex-wrap justify-between gap-2">
+            <div>
+                <p class="font-bold">{{ $req->imya }}</p>
+                <p class="text-sm text-gray-600">{{ $req->telefon ?? $req->email ?? '—' }}</p>
+                <p class="text-sm mt-2"><span class="text-gray-500">Критерии:</span> {{ $req->filtersSummary() }}</p>
+                <p class="text-xs text-gray-500">Источник: {{ ($req->istochnik ?? 'catalog') === 'form' ? 'заявка на подбор (форма)' : 'каталог (ничего не найдено)' }}</p>
+                @if($req->kommentariy)
+                    <p class="text-sm mt-2 whitespace-pre-line">{{ $req->kommentariy }}</p>
+                @endif
+                <p class="text-xs text-gray-500 mt-1">{{ $req->sozdano_at?->format('d.m.Y H:i') }}</p>
+            </div>
+            @if($req->status === 'new')
+                <form method="POST" action="{{ route('realtor.selection-requests.process', $req) }}">
+                    @csrf
+                    <button type="submit" class="btn-primary text-sm">Отметить обработанной</button>
+                </form>
+            @endif
+        </div>
+    </div>
+@empty
+    <div class="card p-8 text-center text-gray-600">Заявок на подбор пока нет.</div>
+@endforelse
+
+<div class="mt-6">{{ $requests->links() }}</div>
+@endsection

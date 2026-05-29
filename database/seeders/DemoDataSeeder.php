@@ -5,11 +5,16 @@ namespace Database\Seeders;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractStatus;
+use App\Models\PaymentStatus;
 use App\Models\Favorite;
 use App\Models\Property;
+use App\Models\PropertyStatus;
 use App\Models\PropertyImage;
 use App\Models\PropertyInquiry;
-use App\Models\PropertyStatus;
+use App\Models\PropertyOwner;
+use App\Models\PropertySelectionRequest;
+use App\Models\PropertyInfoRequest;
+use App\Models\ContractSeller;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserDocument;
@@ -47,6 +52,11 @@ class DemoDataSeeder extends Seeder
 
         if ($demoExists && PropertyImage::count() >= 200 && !env('DEMO_RESEED_MEDIA', false)) {
             $this->command?->warn('Демо-данные уже загружены (' . Property::count() . ' объявлений, ' . PropertyImage::count() . ' фото).');
+            if (!env('DEMO_SKIP_FULL_ENRICH', false)) {
+                $this->call(ComprehensiveDemoSeeder::class);
+            } else {
+                $this->seedTzFeatureDataIfNeeded();
+            }
             $this->command?->warn('Перезалить фото (Docker на сервере):');
             $this->command?->warn('  docker compose exec -e DEMO_RESEED_MEDIA=1 app php artisan db:seed --class=DemoDataSeeder');
             $this->command?->warn('Полностью с нуля (удалит все данные БД):');
@@ -91,6 +101,7 @@ class DemoDataSeeder extends Seeder
             $this->seedFavorites($clients, $properties);
             $this->seedRealtorCrm($realtors, $clients, $properties);
             $this->seedAuditSamples($properties, $admin);
+            $this->call(ComprehensiveDemoSeeder::class);
 
             $imageCount = PropertyImage::count();
 
@@ -651,7 +662,7 @@ class DemoDataSeeder extends Seeder
                 'nedvizhimost_id' => $property->id,
                 'vladelets_id' => $ownerId,
                 'pokupatel_id' => $client->id,
-                'klient_id' => $client->id,
+                'oplata_status_id' => PaymentStatus::idFor('none'),
                 'rieltor_id' => $realtor->id,
                 'sozdal_kak' => $createdByRealtor ? 'realtor' : 'client',
                 'sozdal_storona' => $createdByRealtor ? null : ($i % 2 === 0 ? 'buyer' : 'owner'),
@@ -851,10 +862,18 @@ class DemoDataSeeder extends Seeder
                 $admin->id,
                 Property::class,
                 $property->id,
-                'updated',
+                'obnovleno',
                 [
-                    'tsena' => ['old' => (float) $property->tsena * 1.05, 'new' => (float) $property->tsena],
-                    'status_obyavleniya_id' => ['old' => 'draft', 'new' => PropertyStatus::kodFor((int) $property->status_obyavleniya_id)],
+                    [
+                        'polya' => 'tsena',
+                        'bilo' => (string) round((float) $property->tsena * 1.05, 2),
+                        'stalo' => (string) $property->tsena,
+                    ],
+                    [
+                        'polya' => 'status_obyavleniya_id',
+                        'bilo' => (string) (PropertyStatus::idFor('draft') ?? ''),
+                        'stalo' => (string) ($property->status_obyavleniya_id ?? ''),
+                    ],
                 ],
                 'Корректировка перед публикацией'
             );
@@ -864,8 +883,12 @@ class DemoDataSeeder extends Seeder
                     $property->polzovatel_id,
                     Property::class,
                     $property->id,
-                    'updated',
-                    ['opisanie' => ['old' => 'Черновик описания', 'new' => mb_substr((string) $property->opisanie, 0, 120) . '…']],
+                    'obnovleno',
+                    [[
+                        'polya' => 'opisanie',
+                        'bilo' => 'Черновик описания',
+                        'stalo' => mb_substr((string) $property->opisanie, 0, 120).'…',
+                    ]],
                     null
                 );
             }
@@ -977,6 +1000,27 @@ class DemoDataSeeder extends Seeder
                 'nedvizhimost_id' => $prop->id,
                 'poryadok' => $order,
             ]);
+        }
+    }
+
+    /** Дополняет БД: дома, собственники, документы с реквизитами, УКЭП. */
+    public function seedTzFeatureDataIfNeeded(): void
+    {
+        $clientCount = User::query()->whereHas('roleRelation', fn ($q) => $q->where('kod', 'client'))->count();
+        $personalFilled = UserPersonalData::count();
+        $docsWithJson = UserDocument::whereNotNull('dannye_json')->count();
+
+        $needsFull = env('DEMO_FULL_ENRICH', false)
+            || Property::where('tip', 'house')->whereNull('tip_doma')->exists()
+            || (Property::count() > 0 && PropertyOwner::count() === 0)
+            || (Contract::count() > 0 && ContractSeller::count() === 0)
+            || PropertySelectionRequest::count() === 0
+            || PropertyInfoRequest::count() === 0
+            || ($clientCount > 0 && $personalFilled < $clientCount)
+            || $docsWithJson < max(10, (int) ($clientCount / 2));
+
+        if ($needsFull) {
+            $this->call(ComprehensiveDemoSeeder::class);
         }
     }
 

@@ -121,6 +121,8 @@
         </div>
         <p class="text-xs text-gray-500 -mt-4 mb-6">Этаж не может быть больше общего количества этажей в доме.</p>
 
+        @include('properties.partials.house-fields', ['property' => $property])
+
         <div class="mb-6">
             <label for="status" class="form-label">Статус *</label>
             <select id="status_obyavleniya" name="status_obyavleniya" required class="form-input select-native">
@@ -180,6 +182,10 @@
             </button>
         </div>
     </form>
+
+    @if($canManage ?? \App\Support\PropertyListingAuthor::canManage(auth()->user(), $property))
+        @include('properties.partials.property-owners-form', ['property' => $property])
+    @endif
 </div>
 
 @include('properties.partials.floor-fields-validation')

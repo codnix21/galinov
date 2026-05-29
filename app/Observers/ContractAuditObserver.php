@@ -14,7 +14,7 @@ class ContractAuditObserver
 {
     /** Поля договора, которые попадают в журнал аудита. @var list<string> */
     private array $otslezhivaemyePolya = [
-        'nedvizhimost_id', 'vladelets_id', 'pokupatel_id', 'klient_id', 'rieltor_id', 'sozdal_kak', 'sozdal_storona',
+        'nedvizhimost_id', 'vladelets_id', 'pokupatel_id', 'rieltor_id', 'sozdal_kak', 'sozdal_storona',
         'tip', 'tsena', 'data_nachala', 'data_okonchaniya',
         'status_dogovora_id', 'primechaniya', 'skan_dogovora',
     ];

@@ -116,7 +116,7 @@ class RobokassaPaymentController extends Controller
             return true;
         }
 
-        $buyerId = (int) ($contract->pokupatel_id ?? $contract->klient_id ?? 0);
+        $buyerId = (int) ($contract->pokupatel_id ?? 0);
 
         return (int) $user->id === $buyerId;
     }

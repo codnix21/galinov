@@ -51,7 +51,7 @@
                 <label for="pokupatel_id" class="form-label">Покупатель *</label>
                 <select id="pokupatel_id" name="pokupatel_id" required class="form-input">
                     @foreach($clients as $client)
-                        <option value="{{ $client->id }}" {{ old('pokupatel_id', $contract->pokupatel_id ?? $contract->klient_id) == $client->id ? 'selected' : '' }}>
+                        <option value="{{ $client->id }}" {{ old('pokupatel_id', $contract->pokupatel_id) == $client->id ? 'selected' : '' }}>
                             {{ $client->name }} ({{ $client->email }})
                         </option>
                     @endforeach

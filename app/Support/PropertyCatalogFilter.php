@@ -84,7 +84,67 @@ class PropertyCatalogFilter
             $query->whereHas('images');
         }
 
+        self::applyHouseFilters($query, $request);
+
         return self::applySort($query, $request->string('sort')->toString());
+    }
+
+    public static function applyHouseFilters(Builder $query, Request $request): Builder
+    {
+        $houseOnlyKeys = ['tip_doma', 'est_tsokol', 'garazh', 'parking', 'internet', 'min_ploshchad_uchastka', 'max_ploshchad_uchastka'];
+        $hasHouseFilter = false;
+        foreach ($houseOnlyKeys as $key) {
+            if ($key === 'est_tsokol' || $key === 'garazh' || $key === 'parking' || $key === 'internet') {
+                if ($request->boolean($key)) {
+                    $hasHouseFilter = true;
+                    break;
+                }
+            } elseif ($request->filled($key)) {
+                $hasHouseFilter = true;
+                break;
+            }
+        }
+
+        $type = $request->string('type')->toString();
+        if ($type !== '' && $type !== 'house') {
+            return $query;
+        }
+
+        if ($type !== 'house' && !$hasHouseFilter) {
+            return $query;
+        }
+
+        $query->where('tip', 'house');
+
+        if ($request->filled('tip_doma')) {
+            $query->where('tip_doma', $request->string('tip_doma')->toString());
+        }
+
+        if ($request->boolean('est_tsokol')) {
+            $query->where('est_tsokol', true);
+        }
+
+        if ($request->boolean('garazh')) {
+            $query->where('garazh', true);
+        }
+
+        if ($request->boolean('parking')) {
+            $query->where('parking', true);
+        }
+
+        if ($request->boolean('internet')) {
+            $query->where('internet', true);
+        }
+
+        if ($request->filled('min_ploshchad_uchastka')) {
+            $query->where('ploshchad_uchastka', '>=', (float) $request->input('min_ploshchad_uchastka'));
+        }
+
+        if ($request->filled('max_ploshchad_uchastka')) {
+            $query->where('ploshchad_uchastka', '<=', (float) $request->input('max_ploshchad_uchastka'));
+        }
+
+        return $query;
     }
 
     /** Поиск по словам, номеру объявления, адресу и описанию. */
@@ -165,6 +225,52 @@ class PropertyCatalogFilter
         return $query->latest('obnovleno_at')->latest('id');
     }
 
+    /** Фильтры списка объявлений в админке. */
+    public static function applyAdminList(Builder $query, Request $request): Builder
+    {
+        if ($request->filled('search')) {
+            $search = $request->string('search')->trim()->toString();
+            $escaped = addcslashes($search, '%_\\');
+            $query->where(function ($q) use ($escaped) {
+                $q->where('nazvanie', 'like', "%{$escaped}%")
+                    ->orWhere('opisanie', 'like', "%{$escaped}%")
+                    ->orWhere('adres_ulitsy', 'like', "%{$escaped}%")
+                    ->orWhereHas('cityRelation', fn ($cq) => $cq->where('nazvanie', 'like', "%{$escaped}%"));
+            });
+        }
+
+        if ($request->filled('type')) {
+            $query->where('tip', $request->string('type')->toString());
+        }
+
+        if ($request->filled('operation')) {
+            $query->where('operatsiya', $request->string('operation')->toString());
+        }
+
+        if ($request->filled('status')) {
+            $statusId = \App\Models\PropertyStatus::idFor($request->string('status')->toString());
+            if ($statusId !== null) {
+                $query->where('status_obyavleniya_id', $statusId);
+            }
+        }
+
+        if ($request->filled('city_id')) {
+            $query->where('gorod_id', (int) $request->input('city_id'));
+        }
+
+        if ($request->filled('min_price')) {
+            $query->where('tsena', '>=', (float) $request->input('min_price'));
+        }
+
+        if ($request->filled('max_price')) {
+            $query->where('tsena', '<=', (float) $request->input('max_price'));
+        }
+
+        $sort = $request->string('sort')->toString();
+
+        return self::applySort($query, $sort !== '' ? $sort : self::SORT_NEWEST);
+    }
+
     /** @return list<string> Имена query-параметров активных фильтров каталога */
     public static function activeFilterKeys(Request $request): array
     {
@@ -172,8 +278,15 @@ class PropertyCatalogFilter
         foreach ([
             'search', 'type', 'operation', 'city_id', 'min_price', 'max_price',
             'min_rooms', 'max_rooms', 'min_area', 'max_area', 'min_floor', 'max_floor',
-            'has_photos', 'sort',
+            'has_photos', 'sort', 'tip_doma', 'min_ploshchad_uchastka', 'max_ploshchad_uchastka',
+            'est_tsokol', 'garazh', 'parking', 'internet',
         ] as $key) {
+            if (in_array($key, ['est_tsokol', 'garazh', 'parking', 'internet'], true)) {
+                if ($request->boolean($key)) {
+                    $keys[] = $key;
+                }
+                continue;
+            }
             if ($key === 'sort') {
                 if ($request->filled('sort') && $request->string('sort')->toString() !== self::SORT_NEWEST) {
                     $keys[] = $key;

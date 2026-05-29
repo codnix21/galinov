@@ -90,6 +90,16 @@
         @elseif(\App\Support\DocumentStorage::isJsonRegistryFile($doc->put_fajla))
             <span class="text-sm text-gray-500 mt-2 inline-block">Подтверждено по кадастровому номеру (без скана)</span>
         @endif
+        @php
+            $docDataLines = $doc->dataDisplayLines();
+            if ($doc->tip === 'passport' && $docDataLines === [] && $doc->user?->personalData) {
+                $docDataLines = \App\Support\DocumentDataFields::personalDataLines($doc->user->personalData);
+            }
+        @endphp
+        @include('partials.document-data-display', [
+            'lines' => $docDataLines,
+            'title' => $docDataLines !== [] ? 'Реквизиты' : null,
+        ])
         @if(in_array($doc->status, ['pending', 'checking', 'rejected'], true))
             <div class="mt-4 flex flex-wrap gap-2">
                 <form method="POST" action="{{ route('moderation.documents.recheck', $doc) }}" class="inline">

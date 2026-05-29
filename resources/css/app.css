@@ -66,6 +66,11 @@
         @apply mb-2 block text-sm font-medium text-slate-700;
     }
 
+    /* Блок фильтров дома в каталоге — полная ширина полей */
+    .catalog-house-filters select.form-input {
+        @apply min-w-0 max-w-none;
+    }
+
     /* Навигация */
     .nav-link--compact {
         @apply px-2.5 py-1.5 text-xs sm:text-sm;

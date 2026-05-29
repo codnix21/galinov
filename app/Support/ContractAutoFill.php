@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\ContractStatus;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\PropertyOwnersService;
 use Carbon\Carbon;
 
 /**
@@ -55,7 +56,6 @@ class ContractAutoFill
             'nedvizhimost_id' => $property->id,
             'vladelets_id' => $owner->id,
             'pokupatel_id' => $buyer->id,
-            'klient_id' => $buyer->id,
             'rieltor_id' => $realtor->id,
             'sozdal_kak' => $sozdalKak,
             'sozdal_storona' => $sozdalStorona,
@@ -75,14 +75,20 @@ class ContractAutoFill
         ?User $realtor = null,
         string $sozdalKak = 'client',
     ): Contract {
-        $property->loadMissing('user');
-        $owner = $property->user ?? User::find($property->polzovatel_id);
+        $property->loadMissing(['user', 'owners.user']);
+        PropertyOwnersService::ensureDefaultOwner($property);
+        $property->refresh();
+        $property->load('owners.user');
+
+        $owner = PropertyOwnersService::mainOwnerUser($property)
+            ?? $property->user
+            ?? User::find($property->polzovatel_id);
         if (!$owner) {
             throw new \InvalidArgumentException('У объекта не указан владелец');
         }
 
-        if ((int) $owner->id === (int) $buyer->id) {
-            throw new \InvalidArgumentException('Покупатель не может быть владельцем объекта');
+        if (PropertyOwnersService::buyerAmongOwners($property, (int) $buyer->id)) {
+            throw new \InvalidArgumentException('Покупатель не может быть собственником этого объекта');
         }
 
         $realtor = $realtor ?? self::defaultRealtor();
@@ -97,7 +103,11 @@ class ContractAutoFill
 
         $data = self::build($property, $owner, $buyer, $realtor, $sozdalKak, 'buyer');
         $data['status_dogovora_id'] = $pendingStatus->id;
+        $data['vladelets_id'] = $owner->id;
 
-        return Contract::create($data);
+        $contract = Contract::create($data);
+        PropertyOwnersService::copySellersToContract($contract, $property);
+
+        return $contract;
     }
 }

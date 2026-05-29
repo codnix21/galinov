@@ -6,6 +6,8 @@ use App\Models\Contract;
 use App\Models\Property;
 use App\Models\PropertyCollection;
 use App\Models\PropertyInquiry;
+use App\Models\PropertyInfoRequest;
+use App\Models\PropertySelectionRequest;
 use App\Models\PropertyShowing;
 use App\Models\RealtorClient;
 use App\Models\RealtorTask;
@@ -256,6 +258,68 @@ class AppNotifier
                 'info',
             );
         }
+    }
+
+    public static function propertySelectionRequest(PropertySelectionRequest $request): void
+    {
+        $request->loadMissing('user');
+        $summary = $request->filtersSummary();
+        $staffTitle = 'Заявка на подбор недвижимости';
+        $staffMessage = sprintf('%s — %s', $request->imya, $summary);
+        $staffUrl = route('realtor.selection-requests.index');
+
+        self::notifyStaffExcept(0, new SystemNotification($staffTitle, $staffMessage, $staffUrl, 'info'));
+
+        if ($request->user) {
+            self::deliver(
+                $request->user,
+                'Заявка принята',
+                'Менеджер подберёт объекты по вашим критериям и свяжется с вами.',
+                route('properties.index', $request->filtry ?? []),
+                'info',
+            );
+        }
+    }
+
+    public static function propertyInfoRequestCreated(PropertyInfoRequest $infoRequest): void
+    {
+        $infoRequest->loadMissing(['property', 'client']);
+        $propTitle = $infoRequest->property?->nazvanie ?? 'объект #'.$infoRequest->nedvizhimost_id;
+        $tipLabel = $infoRequest->tipLabel();
+
+        self::notifyStaffExcept(0, new SystemNotification(
+            'Запрос доп. информации',
+            sprintf('«%s» — %s', $propTitle, $tipLabel),
+            route('realtor.info-requests.index'),
+            'info',
+        ));
+
+        if ($infoRequest->client) {
+            self::deliver(
+                $infoRequest->client,
+                'Запрос отправлен',
+                sprintf('По объекту «%s» менеджер ответит в истории запроса.', $propTitle),
+                route('properties.show', $infoRequest->nedvizhimost_id).'#dop-informaciya',
+                'info',
+            );
+        }
+    }
+
+    public static function propertyInfoRequestAnswered(PropertyInfoRequest $infoRequest): void
+    {
+        $infoRequest->loadMissing(['property', 'client']);
+        if (!$infoRequest->client) {
+            return;
+        }
+
+        $propTitle = $infoRequest->property?->nazvanie ?? 'объект #'.$infoRequest->nedvizhimost_id;
+        self::deliver(
+            $infoRequest->client,
+            'Ответ менеджера',
+            sprintf('По вашему запросу по «%s» получен ответ.', $propTitle),
+            route('properties.show', $infoRequest->nedvizhimost_id).'#dop-informaciya',
+            'success',
+        );
     }
 
     public static function propertyInquiryProcessed(PropertyInquiry $inquiry): void

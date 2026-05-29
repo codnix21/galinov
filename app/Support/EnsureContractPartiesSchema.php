@@ -80,9 +80,6 @@ class EnsureContractPartiesSchema
             if (!$vladeletsId && $row->nedvizhimost_id) {
                 $vladeletsId = DB::table('nedvizhimost')->where('id', $row->nedvizhimost_id)->value('polzovatel_id');
             }
-            if (!$pokupatelId && !empty($row->klient_id)) {
-                $pokupatelId = $row->klient_id;
-            }
 
             $updates = array_filter([
                 'vladelets_id' => $vladeletsId,

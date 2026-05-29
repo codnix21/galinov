@@ -19,3 +19,4 @@ import './mobile-nav.js';
 import './toast.js';
 import './confirm-modal.js';
 import './form-validation.js';
+import './house-fields-toggle.js';

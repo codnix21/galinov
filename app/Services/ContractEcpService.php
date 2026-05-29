@@ -74,7 +74,7 @@ class ContractEcpService
     {
         $at = $contract->{'ecp_podpis_' . $party . '_at'};
         $nom = $contract->{'ecp_podpis_' . $party . '_nomera'};
-        $fio = $contract->{'ecp_podpis_' . $party . '_fio'};
+        $fio = $this->partyFio($contract, $party);
 
         return [
             'party' => $party,
@@ -89,16 +89,30 @@ class ContractEcpService
 
     private function applySignature(Contract $contract, User $user, string $party, bool $auto): void
     {
-        $fio = trim($user->familia . ' ' . $user->imya . ' ' . ($user->otchestvo ?? ''));
         $nomera = $this->generateCertificateNumber($user, $contract);
 
         $contract->update([
             'ecp_podpis_' . $party . '_at' => now(),
             'ecp_podpis_' . $party . '_nomera' => $nomera,
-            'ecp_podpis_' . $party . '_fio' => $fio,
         ]);
 
         ContractApproval::finalizeFromEcp($contract->fresh());
+    }
+
+    private function partyFio(Contract $contract, string $party): ?string
+    {
+        $user = match ($party) {
+            'vladelets' => $contract->owner,
+            'pokupatel' => $contract->buyer,
+            'rieltor' => $contract->realtor,
+            default => null,
+        };
+
+        if (!$user) {
+            return null;
+        }
+
+        return trim($user->familia.' '.$user->imya.' '.($user->otchestvo ?? ''));
     }
 
     public function generateCertificateNumber(User $user, Contract $contract): string

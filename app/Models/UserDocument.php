@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\PropertyDocumentRules;
 use App\Support\PublicDisk;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -21,8 +22,10 @@ class UserDocument extends Model
         'tip_obekta',
         'nazvanie',
         'put_fajla',
+        'status_dokumenta_id',
         'status',
         'kommentariy_mod',
+        'dannye_json',
         'provereno_at',
         'vneshniy_id',
         'vneshniy_status',
@@ -34,6 +37,7 @@ class UserDocument extends Model
     const UPDATED_AT = 'obnovleno_at';
 
     protected $casts = [
+        'dannye_json' => 'array',
         'provereno_at' => 'datetime',
         'vneshniy_provereno_at' => 'datetime',
         'sozdano_at' => 'datetime',
@@ -56,9 +60,46 @@ class UserDocument extends Model
         return $this->belongsTo(Property::class, 'nedvizhimost_id');
     }
 
+    public function statusRelation(): BelongsTo
+    {
+        return $this->belongsTo(DocumentStatus::class, 'status_dokumenta_id');
+    }
+
+    /** Код статуса (pending, verified…) — виртуально, в БД только status_dokumenta_id. */
+    public function getStatusAttribute(): string
+    {
+        return DocumentStatus::kodFor(isset($this->attributes['status_dokumenta_id'])
+            ? (int) $this->attributes['status_dokumenta_id']
+            : null) ?? 'pending';
+    }
+
+    public function setStatusAttribute(?string $value): void
+    {
+        $id = DocumentStatus::idFor($value ?: 'pending') ?? DocumentStatus::idFor('pending');
+        if ($id) {
+            $this->attributes['status_dokumenta_id'] = $id;
+        }
+    }
+
+    /** @param  Builder<UserDocument>  $query */
+    public function scopeWhereStatusKod(Builder $query, string $kod): Builder
+    {
+        $id = DocumentStatus::idFor($kod);
+
+        return $id ? $query->where('status_dokumenta_id', $id) : $query->whereRaw('1 = 0');
+    }
+
+    /** @param  Builder<UserDocument>  $query  @param  list<string>  $kody */
+    public function scopeWhereStatusKodIn(Builder $query, array $kody): Builder
+    {
+        $ids = array_values(array_filter(array_map(fn (string $k) => DocumentStatus::idFor($k), $kody)));
+
+        return $ids !== [] ? $query->whereIn('status_dokumenta_id', $ids) : $query->whereRaw('1 = 0');
+    }
+
     public function statusLabel(): string
     {
-        return match ($this->status) {
+        return $this->statusRelation?->nazvanie ?? match ($this->status) {
             'verified' => 'Проверен',
             'rejected' => 'Отклонён',
             'checking' => 'Автопроверка…',
@@ -90,5 +131,15 @@ class UserDocument extends Model
     public function isVerified(): bool
     {
         return $this->status === 'verified';
+    }
+
+    /** @return list<array{label: string, value: string}> */
+    public function dataDisplayLines(): array
+    {
+        return \App\Support\DocumentDataFields::displayLines(
+            (string) $this->tip,
+            $this->dannye_json,
+            $this->property,
+        );
     }
 }

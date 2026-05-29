@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MapsRequestStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** Заявка клиента по объекту (Lean: фиксация спроса). */
 class PropertyInquiry extends Model
 {
+    use MapsRequestStatus;
+
     protected $table = 'zayavki_obekta';
 
     protected $fillable = [
@@ -17,8 +20,14 @@ class PropertyInquiry extends Model
         'telefon',
         'email',
         'kommentariy',
+        'status_zayavki_id',
         'status',
     ];
+
+    public static function statusGruppa(): string
+    {
+        return 'inquiry';
+    }
 
     const CREATED_AT = 'sozdano_at';
 
