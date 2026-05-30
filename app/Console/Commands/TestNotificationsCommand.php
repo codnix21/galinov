@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Mail\WeeklyReportMail;
+use App\Models\Property;
 use App\Models\User;
-use App\Services\TelegramService;
-use App\Support\TelegramHttp;
+use App\Notifications\SystemNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 
@@ -13,35 +13,25 @@ class TestNotificationsCommand extends Command
 {
     protected $signature = 'app:test-notifications
                             {email? : Адрес для тестового письма (по умолчанию MAIL_FROM_ADDRESS)}
-                            {--telegram-user= : ID записи в polzovateli (не chat_id)}
-                            {--telegram-chat= : Telegram chat_id для прямой отправки}';
+                            {--user= : ID пользователя — тест уведомления (колокольчик + email)}';
 
-    protected $description = 'Проверка SMTP и Telegram Bot API';
+    protected $description = 'Проверка SMTP и email-уведомлений CRM';
 
-    public function handle(TelegramService $telegram): int
+    public function handle(): int
     {
-        $this->info('Почта: '.$this->testMail());
+        $this->info('Почта (отчёт): '.$this->testWeeklyMail());
 
-        try {
-            $this->info('Telegram: '.$this->testTelegram($telegram));
-        } catch (\Throwable $e) {
-            $this->warn('Telegram: '.$e->getMessage());
-        }
-
-        $proxy = config('services.telegram.proxy');
-        if ($proxy) {
-            $this->line('Прокси Telegram: '.$proxy);
-            if (file_exists('/.dockerenv')) {
-                $this->warn('В Docker на сервере TELEGRAM_PROXY должен быть пустым.');
-            }
+        $userId = $this->option('user');
+        if ($userId !== null) {
+            $this->info('Уведомление CRM: '.$this->testSystemNotification((int) $userId));
         } else {
-            $this->line('Прокси Telegram: не используется.');
+            $this->line('Подсказка: --user=ID — тест полного уведомления (БД + письмо с кнопкой).');
         }
 
         return self::SUCCESS;
     }
 
-    private function testMail(): string
+    private function testWeeklyMail(): string
     {
         $mailer = (string) config('mail.default');
         if ($mailer === 'log' || $mailer === 'array') {
@@ -55,71 +45,48 @@ class TestNotificationsCommand extends Command
 
         try {
             Mail::to($to)->send(new WeeklyReportMail([
-                'properties_total' => 0,
+                'properties_total' => Property::count(),
                 'properties_active' => 0,
                 'properties_sold' => 0,
                 'contracts_period' => 0,
                 'contracts_active' => 0,
                 'inquiries_total' => 0,
                 'inquiries_processed' => 0,
-                'users_total' => 0,
+                'users_total' => User::count(),
             ], 'Тестовая отправка '.now()->format('d.m.Y H:i')));
 
-            $host = config('mail.mailers.smtp.host') ?: parse_url((string) config('mail.mailers.smtp.url'), PHP_URL_HOST);
+            $host = config('mail.mailers.smtp.host')
+                ?: parse_url((string) config('mail.mailers.smtp.url'), PHP_URL_HOST);
 
-            return "письмо отправлено на {$to} ({$mailer} @ {$host})";
+            return "письмо-отчёт отправлено на {$to} ({$mailer} @ {$host})";
         } catch (\Throwable $e) {
-            $msg = $e->getMessage();
-            if (str_contains($msg, 'tlsv1 alert internal error') || str_contains($msg, 'verify failed')) {
-                $msg .= ' — в Docker задайте MAIL_HOST=host.docker.internal, TELEGRAM_PROXY пустой; не mail.irk138.ru снаружи';
-            }
-
-            return 'ошибка: '.$msg;
+            return 'ошибка: '.$e->getMessage();
         }
     }
 
-    private function testTelegram(TelegramService $telegram): string
+    private function testSystemNotification(int $userId): string
     {
-        if (! $telegram->isConfigured()) {
-            return 'TELEGRAM_BOT_TOKEN не задан';
-        }
-
-        $me = TelegramHttp::client()->get(TelegramHttp::apiUrl('getMe'));
-        if (! $me->successful()) {
-            return 'getMe failed: '.$me->body();
-        }
-
-        $bot = $me->json('result.username') ?? '?';
-
-        $chatId = $this->option('telegram-chat');
-        if ($chatId !== null && $chatId !== '') {
-            $ok = $telegram->sendMessage((string) $chatId, 'Тест CRM: уведомления работают.');
-
-            return $ok
-                ? "@{$bot} — сообщение отправлено в chat_id={$chatId}"
-                : 'sendMessage не удался (см. laravel.log)';
-        }
-
-        $userId = $this->option('telegram-user');
-        if ($userId === null) {
-            return "@{$bot} — бот доступен (--telegram-chat=CHAT_ID или --telegram-user=ID в БД)";
-        }
-
-        $user = User::find((int) $userId);
+        $user = User::find($userId);
         if (! $user) {
-            return 'пользователь с id='.$userId.' не найден';
+            return 'пользователь не найден';
         }
 
-        if (! $user->telegram_chat_id) {
-            if ((string) $userId === (string) $userId && strlen((string) $userId) > 8) {
-                return 'похоже, вы передали chat_id — используйте --telegram-chat='.$userId;
-            }
-
-            return 'у пользователя '.$userId.' нет telegram_chat_id (подключите бота в профиле)';
+        $email = $user->email_polzovatela ?? '';
+        if ($email === '') {
+            return 'у пользователя нет email';
         }
 
-        $ok = $telegram->notifyUser($user, 'Тест', 'Проверка уведомлений CRM', config('app.url'));
+        try {
+            $user->notify(new SystemNotification(
+                'Тест уведомления CRM',
+                'Это проверка email-уведомления: модерация, договоры, заявки и напоминания приходят в таком виде.',
+                route('cabinet.index'),
+                'info',
+            ));
 
-        return $ok ? "сообщение отправлено chat_id={$user->telegram_chat_id}" : 'sendMessage не удался (см. laravel.log)';
+            return "отправлено на {$email} и в колокольчик (id={$userId})";
+        } catch (\Throwable $e) {
+            return 'ошибка: '.$e->getMessage();
+        }
     }
 }

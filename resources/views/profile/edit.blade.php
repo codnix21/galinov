@@ -27,8 +27,6 @@
             @include('profile.partials.update-password-form')
         </div>
 
-        @include('profile.partials.telegram-settings')
-
         <div class="card p-8">
             <h2 class="text-xl font-bold mb-2">Персональные данные (152-ФЗ)</h2>
             <p class="text-gray-600 text-sm mb-4">Выгрузка ваших данных в ZIP (профиль, документы, договоры).</p>

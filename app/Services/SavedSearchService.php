@@ -68,16 +68,10 @@ class SavedSearchService
             $url = route('properties.index', $search->filtry ?? []);
             $user->notify(new SystemNotification(
                 'Новые объявления по сохранённому поиску',
-                sprintf('«%s»: найдено %d новых объектов.', $search->nazvanie, $count),
+                sprintf('«%s»: найдено %d новых объектов по вашим критериям. Откройте каталог, чтобы посмотреть.', $search->nazvanie, $count),
                 $url,
                 'info',
             ));
-            app(TelegramService::class)->notifyUser(
-                $user,
-                'Новые объявления',
-                sprintf('Поиск «%s»: %d новых.', $search->nazvanie, $count),
-                $url,
-            );
         }
 
         $search->update(['poslednyaya_proverka_at' => now()]);

@@ -17,11 +17,11 @@ use App\Support\ContractApproval;
 use Illuminate\Support\Collection;
 
 /**
- * Отправка in-app уведомлений по событиям CRM.
+ * In-app и email-уведомления по событиям CRM.
  */
 class AppNotifier
 {
-    /** Напоминание по расписанию (in-app + Telegram). */
+    /** Напоминание по расписанию. */
     public static function reminder(User $user, string $title, string $message, string $url): void
     {
         self::deliver($user, $title, $message, $url, 'info');
@@ -30,7 +30,6 @@ class AppNotifier
     private static function deliver(User $user, string $title, string $message, string $url, string $icon = 'info'): void
     {
         $user->notify(new SystemNotification($title, $message, $url, $icon));
-        app(TelegramService::class)->notifyUser($user, $title, $message, $url);
     }
 
     public static function propertySubmittedForModeration(Property $property): void
@@ -42,7 +41,7 @@ class AppNotifier
         $message = sprintf('«%s» (%s) ожидает проверки.', $property->nazvanie, $city);
         $url = route('moderation.index');
 
-        self::notifyStaffExcept($ownerId, new SystemNotification($title, $message, $url, 'moderation'));
+        self::notifyStaffExcept($ownerId, $title, $message, $url, 'moderation');
     }
 
     public static function propertyModerationApproved(Property $property): void
@@ -218,7 +217,7 @@ class AppNotifier
     {
         $contract->loadMissing(['property', 'owner', 'realtor', 'buyer']);
         $buyerName = trim($contract->buyer?->name ?? 'Покупатель');
-        $prop = $contract->property?->nazvanie ?? 'объект #' . $contract->nedvizhimost_id;
+        $prop = $contract->property?->nazvanie ?? 'объект #'.$contract->nedvizhimost_id;
         $title = 'Покупатель подписал договор УКЭП';
         $message = sprintf('%s подписал договор по «%s».', $buyerName, $prop);
         $url = route('contracts.show', $contract);
@@ -231,12 +230,12 @@ class AppNotifier
     public static function propertyInquiry(PropertyInquiry $inquiry): void
     {
         $inquiry->loadMissing(['property.user', 'user']);
-        $propTitle = $inquiry->property?->nazvanie ?? 'объект #' . $inquiry->nedvizhimost_id;
+        $propTitle = $inquiry->property?->nazvanie ?? 'объект #'.$inquiry->nedvizhimost_id;
         $staffTitle = 'Новая заявка по объекту';
         $staffMessage = sprintf('«%s» — %s', $propTitle, $inquiry->imya);
         $staffUrl = route('realtor.inquiries.index');
 
-        self::notifyStaffExcept(0, new SystemNotification($staffTitle, $staffMessage, $staffUrl, 'info'));
+        self::notifyStaffExcept(0, $staffTitle, $staffMessage, $staffUrl, 'info');
 
         $owner = $inquiry->property?->user;
         if ($owner && !$owner->isStaff()) {
@@ -268,7 +267,7 @@ class AppNotifier
         $staffMessage = sprintf('%s — %s', $request->imya, $summary);
         $staffUrl = route('realtor.selection-requests.index');
 
-        self::notifyStaffExcept(0, new SystemNotification($staffTitle, $staffMessage, $staffUrl, 'info'));
+        self::notifyStaffExcept(0, $staffTitle, $staffMessage, $staffUrl, 'info');
 
         if ($request->user) {
             self::deliver(
@@ -287,12 +286,13 @@ class AppNotifier
         $propTitle = $infoRequest->property?->nazvanie ?? 'объект #'.$infoRequest->nedvizhimost_id;
         $tipLabel = $infoRequest->tipLabel();
 
-        self::notifyStaffExcept(0, new SystemNotification(
+        self::notifyStaffExcept(
+            0,
             'Запрос доп. информации',
             sprintf('«%s» — %s', $propTitle, $tipLabel),
             route('realtor.info-requests.index'),
             'info',
-        ));
+        );
 
         if ($infoRequest->client) {
             self::deliver(
@@ -329,7 +329,7 @@ class AppNotifier
             return;
         }
 
-        $propTitle = $inquiry->property?->nazvanie ?? 'объект #' . $inquiry->nedvizhimost_id;
+        $propTitle = $inquiry->property?->nazvanie ?? 'объект #'.$inquiry->nedvizhimost_id;
         self::deliver(
             $inquiry->user,
             'Заявка обработана',
@@ -339,7 +339,6 @@ class AppNotifier
         );
     }
 
-    /** Покупатель оформил онлайн-сделку — договор готов, нужна оплата. */
     public static function onlinePurchaseContractCreated(Contract $contract): void
     {
         if (!self::isOnlineAutoPurchase($contract)) {
@@ -352,8 +351,8 @@ class AppNotifier
         }
 
         $contract->loadMissing('property');
-        $propTitle = $contract->property?->nazvanie ?? 'объект #' . $contract->nedvizhimost_id;
-        $amount = number_format((float) ($contract->tsena ?? 0), 0, ',', ' ') . ' ₽';
+        $propTitle = $contract->property?->nazvanie ?? 'объект #'.$contract->nedvizhimost_id;
+        $amount = number_format((float) ($contract->tsena ?? 0), 0, ',', ' ').' ₽';
 
         self::deliver(
             $buyer,
@@ -364,7 +363,6 @@ class AppNotifier
         );
     }
 
-    /** Оплата онлайн-сделки прошла — подпись УКЭП покупателя. */
     public static function onlinePurchasePaid(Contract $contract): void
     {
         if (!self::isOnlineAutoPurchase($contract)) {
@@ -377,7 +375,7 @@ class AppNotifier
         }
 
         $contract->loadMissing('property');
-        $propTitle = $contract->property?->nazvanie ?? 'объект #' . $contract->nedvizhimost_id;
+        $propTitle = $contract->property?->nazvanie ?? 'объект #'.$contract->nedvizhimost_id;
 
         self::deliver(
             $buyer,
@@ -391,7 +389,6 @@ class AppNotifier
         );
     }
 
-    /** Покупатель подписал УКЭП в онлайн-сделке (до активации договора). */
     public static function onlinePurchaseBuyerEcpSigned(Contract $contract): void
     {
         if (!self::isOnlineAutoPurchase($contract)) {
@@ -404,7 +401,7 @@ class AppNotifier
         }
 
         $contract->loadMissing('property');
-        $propTitle = $contract->property?->nazvanie ?? 'объект #' . $contract->nedvizhimost_id;
+        $propTitle = $contract->property?->nazvanie ?? 'объект #'.$contract->nedvizhimost_id;
         $url = route('purchase.complete', $contract);
 
         if (($contract->status ?? '') === 'active') {
@@ -441,20 +438,17 @@ class AppNotifier
         return $buyerId ? User::find($buyerId) : null;
     }
 
-    private static function notifyStaffExcept(int $exceptUserId, SystemNotification $notification): void
-    {
+    private static function notifyStaffExcept(
+        int $exceptUserId,
+        string $title,
+        string $message,
+        string $url,
+        string $icon = 'info',
+    ): void {
         User::query()
             ->where('id', '!=', $exceptUserId)
             ->whereHas('roleRelation', fn ($q) => $q->whereIn('kod', ['admin', 'realtor']))
             ->where(fn ($q) => $q->where('zablokirovan', false)->orWhereNull('zablokirovan'))
-            ->each(function (User $user) use ($notification) {
-                self::deliver(
-                    $user,
-                    $notification->title,
-                    $notification->message,
-                    $notification->url,
-                    $notification->icon,
-                );
-            });
+            ->each(fn (User $user) => self::deliver($user, $title, $message, $url, $icon));
     }
 }

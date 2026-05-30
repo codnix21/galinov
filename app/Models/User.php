@@ -37,7 +37,6 @@ class User extends Authenticatable
         'rol_id',
         'telefon',
         'pol',
-        'telegram_chat_id',
         'biografiya',
         'avatar_polzovatela',
         'zablokirovan',
@@ -62,6 +61,13 @@ class User extends Authenticatable
     public function getEmailAttribute()
     {
         return $this->attributes['email_polzovatela'] ?? null;
+    }
+
+    public function routeNotificationForMail(): ?string
+    {
+        $email = $this->attributes['email_polzovatela'] ?? null;
+
+        return is_string($email) && $email !== '' ? $email : null;
     }
 
     /** Хэш пароля — не отдавать наружу (колонка parol) */

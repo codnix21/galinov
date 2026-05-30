@@ -25,32 +25,30 @@ docker compose exec app php artisan db:seed --class=DemoDataSeeder
 
 Фото для сидера уже в `database/seeders/media/`. Пароль тестовых учёток: `Password123!`, админ: `demo.admin@agency.local`
 
-## Почта и Telegram в `.env` на сервере
+## Почта и уведомления в `.env` на сервере
 
-Приложение в **Docker**, почтовый сервер — на **хосте** (`root@mail`). В `.env` на VPS:
+Приложение в **Docker**, Postfix — на **хосте**. Уведомления CRM (модерация, договоры, заявки) уходят на **email** пользователя и в колокольчик.
 
 ```env
-TELEGRAM_PROXY=
-MAIL_HOST=host.docker.internal
-MAIL_PORT=587
-MAIL_ENCRYPTION=tls
+MAIL_MAILER=smtp
+MAIL_HOST=172.21.0.1
+MAIL_DOCKER_GATEWAY=172.21.0.1
+MAIL_PORT=25
+MAIL_ENCRYPTION=none
 MAIL_USERNAME=agn@irk138.ru
 MAIL_PASSWORD=...
 MAIL_FROM_ADDRESS=agn@irk138.ru
 MAIL_VERIFY_PEER=false
 ```
 
-Не используйте `mail.irk138.ru` и **не копируйте** `TELEGRAM_PROXY` с домашнего ПК — из контейнера прокси таймаутит.
+IP шлюза: `docker network inspect galinov_net -f '{{(index .IPAM.Config 0).Gateway}}'`
 
-После правки `.env`:
+Проверка:
 
 ```bash
-docker compose up -d
 docker compose exec app php artisan config:clear
-docker compose exec app php artisan app:test-notifications agn@irk138.ru
+docker compose exec app php artisan app:test-notifications agn@irk138.ru --user=1
 ```
-
-Если 587 не подключается, попробуйте `MAIL_PORT=25` и `MAIL_ENCRYPTION=none`.
 
 ## Наполнение БД (важно: только внутри контейнера)
 
@@ -100,12 +98,6 @@ location / {
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 ```
-
-## Telegram
-
-1. Создайте бота через [@BotFather](https://t.me/BotFather), укажите `TELEGRAM_BOT_TOKEN` и `TELEGRAM_BOT_USERNAME` в `.env`.
-2. Webhook (HTTPS): `https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://ваш-домен/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>`
-3. В профиле на сайте (риэлтор/админ) — «Сгенерировать ссылку для бота» или вручную Chat ID.
 
 ## Напоминания
 

@@ -83,9 +83,8 @@ composer run dev
 - Загрузка файлов: `php artisan storage:link`. На Windows, если симлинк недоступен, файлы отдаются через `/media/...`.
 - Подсказки адресов **DaData** (опционально): `DADATA_API_KEY`, `DADATA_SECRET_KEY` в `.env`.
 - Роли: **admin**, **realtor**, **client**. Тестовые учётные записи создаёт сидер (`php artisan migrate:fresh --seed`), пароль: **Password123!** (админ: `demo.admin@agency.local`).
-- Почта и Telegram: `php artisan app:test-notifications agn@irk138.ru --telegram-chat=CHAT_ID`
-- **Telegram с ПК:** `TELEGRAM_PROXY=socks5://…` в `.env`
-- **Почта:** обычно работает на сервере `mail.irk138.ru` (5.35.125.156); с домашнего ПК TLS может отклоняться — тестируйте на VPS
+- Уведомления по email + колокольчик: `php artisan app:test-notifications agn@irk138.ru --user=1`
+- На VPS в Docker: `MAIL_HOST` = IP шлюза сети `galinov_net` (см. `docker/README.md`)
 
 ### Полезные команды
 

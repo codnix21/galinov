@@ -40,7 +40,6 @@ class ProfileUpdateRequest extends FormRequest
             'telefon' => ['nullable', 'string', 'max:32', 'regex:/^[\d\s\-\+\(\)]+$/u'],
             'pol' => ['nullable', 'string', Rule::in(['male', 'female'])],
             'biografiya' => ['nullable', 'string', 'max:1000'],
-            'telegram_chat_id' => ['nullable', 'string', 'max:32'],
             'avatar_polzovatela' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];
     }

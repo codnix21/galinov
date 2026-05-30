@@ -54,16 +54,6 @@ return [
 
     'http_verify_ssl' => env('HTTP_VERIFY_SSL', true),
 
-    // Telegram Bot API — уведомления риэлторам и клиентам
-    'telegram' => [
-        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
-        'bot_username' => env('TELEGRAM_BOT_USERNAME'),
-        'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
-        // socks5://127.0.0.1:10808 или http://127.0.0.1:7890 — если api.telegram.org недоступен
-        'proxy' => env('TELEGRAM_PROXY'),
-        'api_base' => env('TELEGRAM_API_BASE', 'https://api.telegram.org'),
-    ],
-
     // Автопроверка документов на объект (тестовый режим без внешнего API)
     'registry' => [
         'demo_mode' => env('DOCUMENT_VERIFICATION_DEMO', true),

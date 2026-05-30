@@ -77,9 +77,6 @@ Route::get('/properties', [PropertyController::class, 'index'])->name('propertie
 Route::get('/properties/map', [PropertyController::class, 'map'])->name('properties.map');
 Route::post('/properties/selection-request', [PropertySelectionRequestController::class, 'store'])->name('properties.selection-request.store');
 
-// Webhook Telegram (без CSRF)
-Route::post('/telegram/webhook', \App\Http\Controllers\TelegramWebhookController::class)->name('telegram.webhook');
-
 // Личный кабинет: нужен вход и аккаунт не заблокирован
 Route::middleware(['auth', 'check.blocked'])->group(function () {
     Route::get('/cabinet', [CabinetController::class, 'index'])->name('cabinet.index');
@@ -224,8 +221,6 @@ Route::middleware(['auth', 'check.blocked'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/personal', [ProfileController::class, 'updatePersonalData'])->name('profile.personal.update');
-    Route::patch('/profile/telegram', [ProfileController::class, 'updateTelegram'])->name('profile.telegram.update');
-    Route::post('/profile/telegram/link', [\App\Http\Controllers\TelegramLinkController::class, 'createLink'])->name('profile.telegram.link');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 

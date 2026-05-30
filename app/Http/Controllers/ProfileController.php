@@ -123,17 +123,6 @@ class ProfileController extends Controller
     /**
      * Удалить аккаунт пользователя после подтверждения пароля.
      */
-    public function updateTelegram(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'telegram_chat_id' => ['nullable', 'string', 'max:32'],
-        ]);
-
-        $request->user()->update($validated);
-
-        return Redirect::route('profile.edit')->with('status', 'telegram-updated');
-    }
-
     public function destroy(Request $request): RedirectResponse
     {
         $request->validateWithBag('userDeletion', [
