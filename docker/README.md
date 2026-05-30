@@ -25,6 +25,33 @@ docker compose exec app php artisan db:seed --class=DemoDataSeeder
 
 Фото для сидера уже в `database/seeders/media/`. Пароль тестовых учёток: `Password123!`, админ: `demo.admin@agency.local`
 
+## Почта и Telegram в `.env` на сервере
+
+Приложение в **Docker**, почтовый сервер — на **хосте** (`root@mail`). В `.env` на VPS:
+
+```env
+TELEGRAM_PROXY=
+MAIL_HOST=host.docker.internal
+MAIL_PORT=587
+MAIL_ENCRYPTION=tls
+MAIL_USERNAME=agn@irk138.ru
+MAIL_PASSWORD=...
+MAIL_FROM_ADDRESS=agn@irk138.ru
+MAIL_VERIFY_PEER=false
+```
+
+Не используйте `mail.irk138.ru` и **не копируйте** `TELEGRAM_PROXY` с домашнего ПК — из контейнера прокси таймаутит.
+
+После правки `.env`:
+
+```bash
+docker compose up -d
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan app:test-notifications agn@irk138.ru
+```
+
+Если 587 не подключается, попробуйте `MAIL_PORT=25` и `MAIL_ENCRYPTION=none`.
+
 ## Наполнение БД (важно: только внутри контейнера)
 
 На VPS **не запускайте** `php artisan` в `/opt/galinov` с хоста — там нет папки `vendor`. Все команды — через Docker:

@@ -31,8 +31,11 @@ class TestNotificationsCommand extends Command
         $proxy = config('services.telegram.proxy');
         if ($proxy) {
             $this->line('Прокси Telegram: '.$proxy);
+            if (file_exists('/.dockerenv')) {
+                $this->warn('В Docker на сервере TELEGRAM_PROXY должен быть пустым.');
+            }
         } else {
-            $this->line('Прокси Telegram не задан (TELEGRAM_PROXY в .env).');
+            $this->line('Прокси Telegram: не используется.');
         }
 
         return self::SUCCESS;
@@ -68,7 +71,7 @@ class TestNotificationsCommand extends Command
         } catch (\Throwable $e) {
             $msg = $e->getMessage();
             if (str_contains($msg, 'tlsv1 alert internal error') || str_contains($msg, 'verify failed')) {
-                $msg .= ' — с домашнего ПК SMTP часто недоступен; проверьте на VPS (agn.irk138.ru): php artisan app:test-notifications';
+                $msg .= ' — в Docker задайте MAIL_HOST=host.docker.internal, TELEGRAM_PROXY пустой; не mail.irk138.ru снаружи';
             }
 
             return 'ошибка: '.$msg;

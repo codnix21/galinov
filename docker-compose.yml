@@ -17,6 +17,8 @@ services:
       - "127.0.0.1:8083:80"
     volumes:
       - galinov_storage:/var/www/html/storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - galinov_net
     depends_on:
@@ -31,6 +33,8 @@ services:
     command: ["php", "artisan", "schedule:work"]
     volumes:
       - galinov_storage:/var/www/html/storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - galinov_net
     depends_on:
