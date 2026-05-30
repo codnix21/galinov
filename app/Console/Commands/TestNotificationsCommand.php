@@ -21,11 +21,24 @@ class TestNotificationsCommand extends Command
     {
         $this->info('Почта (отчёт): '.$this->testWeeklyMail());
 
+        $crmTested = false;
         $userId = $this->option('user');
         if ($userId !== null) {
             $this->info('Уведомление CRM: '.$this->testSystemNotification((int) $userId));
+            $crmTested = true;
         } else {
-            $this->line('Подсказка: --user=ID — тест полного уведомления (БД + письмо с кнопкой).');
+            $to = $this->argument('email');
+            if (is_string($to) && $to !== '') {
+                $byEmail = User::where('email_polzovatela', $to)->first();
+                if ($byEmail) {
+                    $this->info('Уведомление CRM: '.$this->testSystemNotification((int) $byEmail->id));
+                    $crmTested = true;
+                }
+            }
+        }
+
+        if (! $crmTested) {
+            $this->line('Подсказка: --user=ID (id в polzovateli, обычно 1–5) или укажите email существующего пользователя.');
         }
 
         return self::SUCCESS;
