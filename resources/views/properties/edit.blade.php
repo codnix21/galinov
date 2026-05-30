@@ -122,6 +122,8 @@
         <p class="text-xs text-gray-500 -mt-4 mb-6">Этаж не может быть больше общего количества этажей в доме.</p>
 
         @include('properties.partials.house-fields', ['property' => $property])
+        @include('properties.partials.land-fields', ['property' => $property])
+        @include('properties.partials.commercial-fields', ['property' => $property])
 
         <div class="mb-6">
             <label for="status" class="form-label">Статус *</label>

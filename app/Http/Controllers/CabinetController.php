@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\ContractStatus;
 use App\Models\Property;
 use App\Models\PropertyStatus;
+use App\Support\ContractDealTimeline;
 use App\Support\LeanWorkflow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -71,7 +72,25 @@ class CabinetController extends Controller
 
         $leanActions = LeanWorkflow::nextActionsFor($user);
 
-        return view('cabinet.index', compact('user', 'properties', 'stats', 'leanActions'));
+        $dealTimelines = [];
+        if ($user->isClient()) {
+            $deals = Contract::query()
+                ->where(fn ($q) => $q->where('vladelets_id', $user->id)->orWhere('pokupatel_id', $user->id))
+                ->with(['property', 'sellers.user'])
+                ->latest('obnovleno_at')
+                ->limit(5)
+                ->get();
+            foreach ($deals as $deal) {
+                $steps = ContractDealTimeline::build($deal);
+                $dealTimelines[] = [
+                    'contract' => $deal,
+                    'steps' => $steps,
+                    'progress' => ContractDealTimeline::progressPercent($steps),
+                ];
+            }
+        }
+
+        return view('cabinet.index', compact('user', 'properties', 'stats', 'leanActions', 'dealTimelines'));
     }
 }
 

@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Property;
 use App\Models\PropertyInquiry;
 use App\Models\PropertyStatus;
+use App\Models\User;
 use App\Services\AppNotifier;
+use App\Support\InquirySla;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,12 +50,21 @@ class PropertyInquiryController extends Controller
             abort(403);
         }
 
-        $inquiries = PropertyInquiry::with(['property', 'user'])
+        $inquiries = PropertyInquiry::with(['property', 'user', 'assignedRealtor'])
             ->orderByRaw(\App\Models\RequestStatus::fieldOrderSql('inquiry', ['new', 'processed']))
             ->orderByDesc('sozdano_at')
             ->paginate(20);
 
-        return view('realtor.inquiries', compact('inquiries'));
+        $realtors = User::whereHas('roleRelation', fn ($q) => $q->whereIn('kod', ['realtor', 'admin']))->orderBy('familia')->get();
+
+        $slaHours = InquirySla::hours();
+        $overdueCount = PropertyInquiry::query()
+            ->whereStatusKod('new')
+            ->get()
+            ->filter(fn (PropertyInquiry $i) => InquirySla::isOverdue($i))
+            ->count();
+
+        return view('realtor.inquiries', compact('inquiries', 'slaHours', 'overdueCount', 'realtors'));
     }
 
     public function process(Request $request, PropertyInquiry $inquiry): RedirectResponse

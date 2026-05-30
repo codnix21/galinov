@@ -4,7 +4,7 @@
     $infoRequests = $infoRequests ?? collect();
 @endphp
 <div class="card p-6" id="dop-informaciya">
-    <h3 class="text-xl font-bold mb-2">Дополнительная информация у менеджера</h3>
+    <h3 class="text-xl font-bold mb-2">Дополнительная информация у риэлтора</h3>
     <p class="text-sm text-gray-600 mb-4">Уточните документы, срок владения, обременения и другие детали по объекту. История переписки сохраняется.</p>
 
     @if($canAsk)
@@ -25,10 +25,10 @@
                 <textarea id="info_tekst" name="tekst" rows="3" required class="form-input" placeholder="Например: сколько лет в собственности, есть ли ипотека…">{{ old('tekst') }}</textarea>
                 @error('tekst')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </div>
-            <button type="submit" class="btn-primary w-full">Отправить запрос менеджеру</button>
+            <button type="submit" class="btn-primary w-full">Отправить запрос риэлтору</button>
         </form>
     @elseif(!Auth::check())
-        <p class="text-sm text-gray-600 mb-4"><a href="{{ route('login') }}" class="underline">Войдите</a>, чтобы задать вопрос менеджеру.</p>
+        <p class="text-sm text-gray-600 mb-4"><a href="{{ route('login') }}" class="underline">Войдите</a>, чтобы задать вопрос риэлтору.</p>
     @endif
 
     @if($infoRequests->isNotEmpty())
@@ -45,7 +45,7 @@
                         @foreach($req->messages as $msg)
                             <div class="p-2 rounded {{ $msg->isStaff() ? 'bg-brand-50 border border-brand-100' : 'bg-slate-50' }}">
                                 <p class="text-xs font-medium text-gray-600 mb-1">
-                                    {{ $msg->isStaff() ? 'Менеджер' : 'Вы' }}
+                                    {{ $msg->isStaff() ? 'Риэлтор' : 'Вы' }}
                                     · {{ $msg->sozdano_at?->format('d.m.Y H:i') }}
                                 </p>
                                 <p class="whitespace-pre-line">{{ $msg->tekst }}</p>

@@ -95,7 +95,7 @@ return new class extends Migration
         foreach ([
             ['kod' => 'none', 'nazvanie' => 'Не оплачено'],
             ['kod' => 'pending', 'nazvanie' => 'Ожидает оплаты'],
-            ['kod' => 'simulated_paid', 'nazvanie' => 'Оплачено (демо)'],
+            ['kod' => 'simulated_paid', 'nazvanie' => 'Оплачено (тестовый платёж)'],
             ['kod' => 'robokassa_paid', 'nazvanie' => 'Оплачено (Robokassa)'],
         ] as $row) {
             DB::table('statusy_oplat')->insertOrIgnore($row);

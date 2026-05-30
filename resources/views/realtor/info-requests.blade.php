@@ -25,7 +25,7 @@
         <div class="space-y-2 mb-4 text-sm">
             @foreach($req->messages as $msg)
                 <div class="p-2 rounded {{ $msg->isStaff() ? 'bg-brand-50' : 'bg-slate-50' }}">
-                    <p class="text-xs text-gray-500">{{ $msg->isStaff() ? 'Менеджер' : 'Клиент' }} · {{ $msg->sozdano_at?->format('d.m.Y H:i') }}</p>
+                    <p class="text-xs text-gray-500">{{ $msg->isStaff() ? 'Риэлтор' : 'Клиент' }} · {{ $msg->sozdano_at?->format('d.m.Y H:i') }}</p>
                     <p class="whitespace-pre-line">{{ $msg->tekst }}</p>
                 </div>
             @endforeach

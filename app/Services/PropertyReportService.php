@@ -13,6 +13,7 @@ use App\Models\ZhurnalIzmeneniy;
 use App\Support\DocumentDataFields;
 use App\Support\PropertyDocumentRules;
 use App\Support\PropertyHouseAttributes;
+use App\Support\PropertyLandAttributes;
 use App\Support\PropertyListingAuthor;
 use App\Support\UserProfileDocuments;
 use Illuminate\Support\Facades\DB;
@@ -125,6 +126,7 @@ class PropertyReportService
 
         $documentRows = self::documentReportRows($property, $required, $docStatus, (bool) $isOwnerOrStaff);
         $houseRows = PropertyHouseAttributes::displayRows($property);
+        $landRows = PropertyLandAttributes::displayRows($property);
 
         return [
             'property' => $property,
@@ -160,6 +162,7 @@ class PropertyReportService
             'canPublishToModeration' => (bool) $canPublishToModeration,
             'statusVersions' => $statusVersions,
             'houseRows' => $houseRows,
+            'landRows' => $landRows,
             'imagesCount' => $property->images->count(),
             'ownersCount' => $property->owners->count(),
             'isRent' => ($property->operatsiya ?? '') === 'rent',

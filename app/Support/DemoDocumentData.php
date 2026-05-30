@@ -48,7 +48,7 @@ class DemoDocumentData
             'egrul' => [
                 'ogrn' => '102380000'.str_pad((string) (1000 + $property->id % 9000), 4, '0', STR_PAD_LEFT),
                 'inn_ul' => '3808'.str_pad((string) (1000000 + $property->id % 900000), 6, '0', STR_PAD_LEFT),
-                'naimenovanie_yurlica' => 'ООО «Демо Коммерция '.$property->id.'»',
+                'naimenovanie_yurlica' => 'ООО «Пример Коммерция '.$property->id.'»',
             ],
             'cadastral' => [
                 'kadastrovy_nomer' => self::cadastralForProperty($property, $index + 1),

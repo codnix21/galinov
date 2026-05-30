@@ -14,6 +14,7 @@ use App\Models\PropertyInquiry;
 use App\Models\PropertyOwner;
 use App\Models\PropertySelectionRequest;
 use App\Models\PropertyInfoRequest;
+use App\Models\ResponseTemplate;
 use App\Models\ContractSeller;
 use App\Models\Role;
 use App\Models\User;
@@ -28,11 +29,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Демо-данные, близкие к реальным: агентство, риэлторы, клиенты, объявления, договоры.
+ * Тестовые данные, близкие к реальным: агентство, риэлторы, клиенты, объявления, договоры.
  *
  * Запуск: php artisan db:seed --class=DemoDataSeeder
  * Повторный запуск пропускается, если уже есть demo.admin@agency.local и фото.
- * Пароль всех демо-аккаунтов: Password123!
+ * Пароль всех учётных записей сидера: Password123!
  */
 class DemoDataSeeder extends Seeder
 {
@@ -51,7 +52,7 @@ class DemoDataSeeder extends Seeder
             && Property::count() >= 80;
 
         if ($demoExists && PropertyImage::count() >= 200 && !env('DEMO_RESEED_MEDIA', false)) {
-            $this->command?->warn('Демо-данные уже загружены (' . Property::count() . ' объявлений, ' . PropertyImage::count() . ' фото).');
+            $this->command?->warn('Данные сидера уже загружены (' . Property::count() . ' объявлений, ' . PropertyImage::count() . ' фото).');
             if (!env('DEMO_SKIP_FULL_ENRICH', false)) {
                 $this->call(ComprehensiveDemoSeeder::class);
             } else {
@@ -963,7 +964,7 @@ class DemoDataSeeder extends Seeder
                 ['rieltor_id' => $realtor->id, 'klient_id' => $client->id],
                 [
                     'status' => ['new', 'in_progress', 'in_progress', 'deal', 'lost'][$i] ?? 'new',
-                    'zametki' => 'Демо: ищет ' . ($i % 2 === 0 ? 'квартиру 2–3 комнаты' : 'дом в Подмосковье'),
+                    'zametki' => 'Ищет ' . ($i % 2 === 0 ? 'квартиру 2–3 комнаты' : 'дом в Подмосковье'),
                 ]
             );
         }
@@ -982,7 +983,7 @@ class DemoDataSeeder extends Seeder
                 'klient_id' => $clients[1]->id,
                 'nedvizhimost_id' => $active[0]->id,
                 'naznacheno_na' => now()->addDays(2)->setTime(14, 0),
-                'zametki' => 'Показ с ипотечным менеджером',
+                'zametki' => 'Показ с ипотечным консультантом',
             ]);
         }
 
@@ -991,7 +992,7 @@ class DemoDataSeeder extends Seeder
             'klient_id' => $clients[0]->id,
             'nazvanie' => 'Подборка для семьи Ивановых',
             'token' => \App\Models\PropertyCollection::generateToken(),
-            'kommentariy' => '3 варианта в вашем бюджете — демо-подборка',
+            'kommentariy' => '3 варианта в вашем бюджете — подборка риэлтора',
         ]);
 
         foreach (array_slice($active, 0, 3) as $order => $prop) {
@@ -1016,6 +1017,7 @@ class DemoDataSeeder extends Seeder
             || (Contract::count() > 0 && ContractSeller::count() === 0)
             || PropertySelectionRequest::count() === 0
             || PropertyInfoRequest::count() === 0
+            || ResponseTemplate::count() === 0
             || ($clientCount > 0 && $personalFilled < $clientCount)
             || $docsWithJson < max(10, (int) ($clientCount / 2));
 

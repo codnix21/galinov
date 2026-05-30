@@ -18,7 +18,7 @@ class AdminAuditLogController extends Controller
 {
     private function checkAdmin(): void
     {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (!Auth::check() || !Auth::user()->canAccessAdminPanel()) {
             abort(403, 'Доступ запрещен');
         }
     }

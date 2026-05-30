@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PropertySelectionRequest;
+use App\Models\User;
 use App\Services\AppNotifier;
 use App\Models\City;
 use App\Support\PropertyCatalogSimilar;
@@ -56,15 +57,15 @@ class PropertySelectionRequestController extends Controller
         if ($isForm) {
             return redirect()
                 ->route('cabinet.index')
-                ->with('success', 'Заявка на подбор принята. Менеджер свяжется с вами и подготовит варианты.');
+                ->with('success', 'Заявка на подбор принята. Риэлтор свяжется с вами и подготовит варианты.');
         }
 
         $redirectParams = array_filter($filters, fn ($v) => is_scalar($v) && $v !== '');
 
         return redirect()
             ->route('properties.index', $redirectParams)
-            ->with('success', 'Заявка менеджеру отправлена. Мы подберём варианты и свяжемся с вами.')
-            ->withFragment('zayavka-menedzheru');
+            ->with('success', 'Заявка риэлтору отправлена. Мы подберём варианты и свяжемся с вами.')
+            ->withFragment('zayavka-rieltoru');
     }
 
     public function index(Request $request): View
@@ -73,12 +74,14 @@ class PropertySelectionRequestController extends Controller
             abort(403);
         }
 
-        $requests = PropertySelectionRequest::with('user')
+        $requests = PropertySelectionRequest::with(['user', 'assignedRealtor'])
             ->orderByRaw(\App\Models\RequestStatus::fieldOrderSql('selection', ['new', 'processed']))
             ->orderByDesc('sozdano_at')
             ->paginate(20);
 
-        return view('realtor.selection-requests', compact('requests'));
+        $realtors = User::whereHas('roleRelation', fn ($q) => $q->whereIn('kod', ['realtor', 'admin']))->orderBy('familia')->get();
+
+        return view('realtor.selection-requests', compact('requests', 'realtors'));
     }
 
     public function process(Request $request, PropertySelectionRequest $selectionRequest): RedirectResponse

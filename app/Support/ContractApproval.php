@@ -214,7 +214,12 @@ class ContractApproval
         $dirty = false;
 
         if (self::needsOwnerApproval($contract) && !$contract->podtverzhden_vladelets_at) {
-            $contract->podtverzhden_vladelets_at = $contract->ecp_podpis_vladelets_at ?? Carbon::now();
+            $ownerSignedAt = $contract->ecp_podpis_vladelets_at;
+            if (!$ownerSignedAt && app(ContractEcpService::class)->allSellersSigned($contract)) {
+                $contract->loadMissing('sellers');
+                $ownerSignedAt = $contract->sellers->max('ecp_podpis_at');
+            }
+            $contract->podtverzhden_vladelets_at = $ownerSignedAt ?? Carbon::now();
             $dirty = true;
         }
         if (self::needsBuyerApproval($contract) && !$contract->podtverzhden_pokupatel_at) {
@@ -267,6 +272,7 @@ class ContractApproval
                 $property->update(['status_obyavleniya_id' => $rentedStatus->id]);
                 DB::table('izbrannoe')->where('nedvizhimost_id', $property->id)->delete();
             }
+            \App\Services\RentScheduleService::generateForContract($contract->fresh());
         }
     }
 

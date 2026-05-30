@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Http;
+use App\Support\TelegramHttp;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -29,10 +29,7 @@ class TelegramService
             return false;
         }
 
-        $token = config('services.telegram.bot_token');
-        $url = "https://api.telegram.org/bot{$token}/sendMessage";
-
-        $response = Http::timeout(10)->post($url, [
+        $response = TelegramHttp::client()->post(TelegramHttp::apiUrl('sendMessage'), [
             'chat_id' => $chatId,
             'text' => mb_substr($text, 0, 4000),
             'disable_web_page_preview' => false,

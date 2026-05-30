@@ -1,38 +1,8 @@
-# Дипломный проект
+# CRM «Галинов» — агентство недвижимости
 
-**Дипломный проект (ДП)** студента специальности **09.02.07** «Информационные системы и программирование», квалификация **специалист по информационным системам».
+Веб-приложение для каталога объявлений, модерации, договоров, CRM риэлтора и отчётности агентства недвижимости.
 
-**Вид программного продукта:** CRM/ERP  
-**Тема:** Агентство недвижимости  
-**Студент, группа:** Галинов Иван Анатольевич, ИС-22-1
-
-Веб-приложение для учёта объявлений, модерации, договоров и отчётности агентства недвижимости. Стек: **Laravel 12**, **PHP 8.2+**, **MySQL** (рекомендуется) / SQLite, фронтенд — **Vite**, **Tailwind CSS**, **Alpine.js**.
-
----
-
-## Структура
-
-Обязательная структура каталогов:
-
-```
-├── docs
-│   ├── Презентация.pptx (при наличии)
-│   ├── Презентация.pdf (формируется на предзащиту и защиту)
-│   ├── Пояснительная записка.docx
-│   ├── Пояснительная записка.pdf (формируется на предзащиту и защиту)
-│   ├── Техническое задание.docx
-│   ├── Техническое задание.pdf (формируется на предзащиту и защиту)
-│   ├── Бланк-заказ.pdf (при наличии, сканированный документ с подписью)
-│   ├── Бланк о внедрении.pdf (при наличии, сканированный документ с подписью)
-│   ├── Задание на дипломное проектирование.pdf (сканированный документ с подписями)
-│   ├── Отзыв руководителя.pdf (сканированный документ с подписью)
-│   └── Рецензия.pdf (сканированный документ с подписью)
-├── project
-│    └── Исходные файлы проекта
-└── README.md
-```
-
-В каталоге `project/` размещается исходный код приложения (Laravel): `app/`, `config/`, `database/`, `public/`, `resources/`, `routes/`, `artisan`, `composer.json` и др.
+Стек: **Laravel 12**, **PHP 8.2+**, **MySQL** (рекомендуется) / SQLite, фронтенд — **Vite**, **Tailwind CSS**, **Alpine.js**.
 
 ---
 
@@ -43,27 +13,13 @@
 - PHP **8.2+** (расширения по требованиям Laravel: `pdo`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, `fileinfo` и др.)
 - **Composer** 2.x
 - **Node.js** 18+ и **npm**
-- **MySQL** 8.x / MariaDB (рекомендуется для защиты) или **SQLite** для локальной отладки
+- **MySQL** 8.x / MariaDB (рекомендуется) или **SQLite** для локальной отладки
 
 ### Установка
 
-Все команды ниже выполняются из каталога **`project/`**.
-
-**Linux / macOS:**
-
 ```bash
-cd project
 composer install
-cp .env.example .env
-php artisan key:generate
-```
-
-**Windows (PowerShell):**
-
-```powershell
-cd project
-composer install
-copy .env.example .env
+cp .env.example .env   # Windows: copy .env.example .env
 php artisan key:generate
 ```
 
@@ -78,7 +34,7 @@ DB_USERNAME=пользователь
 DB_PASSWORD=пароль
 ```
 
-Для **SQLite** (по умолчанию в `.env.example`) создайте файл базы и примените миграции:
+Для **SQLite** создайте файл базы:
 
 ```bash
 # Linux / macOS
@@ -88,7 +44,7 @@ touch database/database.sqlite
 New-Item -ItemType File -Path database\database.sqlite -Force
 ```
 
-Применение миграций и демо-данных (при необходимости):
+Применение миграций и начальных данных (при необходимости):
 
 ```bash
 php artisan migrate
@@ -110,27 +66,26 @@ composer run setup
 
 ### Запуск
 
-Сервер разработки:
-
 ```bash
 php artisan serve
 ```
 
-Приложение будет доступно по адресу: **http://127.0.0.1:8000**
+Приложение: **http://127.0.0.1:8000**
 
-Режим разработки с hot-reload (сервер, очередь, логи, Vite):
+Режим разработки с hot-reload:
 
 ```bash
 composer run dev
 ```
 
-Либо в двух терминалах: `php artisan serve` и `npm run dev`.
-
 ### Дополнительно
 
-- Загрузка файлов (фото объектов): `php artisan storage:link`. Если симлинк на Windows недоступен, файлы отдаются через маршрут `/media/...`.
-- Подсказки адресов **DaData** (опционально): в `.env` укажите `DADATA_API_KEY` и `DADATA_SECRET_KEY`.
-- Роли в системе: **admin**, **realtor**, **client**. Учётную запись администратора можно создать через сидер (`php artisan db:seed`) или назначить роль в админ-панели после регистрации.
+- Загрузка файлов: `php artisan storage:link`. На Windows, если симлинк недоступен, файлы отдаются через `/media/...`.
+- Подсказки адресов **DaData** (опционально): `DADATA_API_KEY`, `DADATA_SECRET_KEY` в `.env`.
+- Роли: **admin**, **realtor**, **client**. Тестовые учётные записи создаёт сидер (`php artisan migrate:fresh --seed`), пароль: **Password123!** (админ: `demo.admin@agency.local`).
+- Почта и Telegram: `php artisan app:test-notifications agn@irk138.ru --telegram-chat=CHAT_ID`
+- **Telegram с ПК:** `TELEGRAM_PROXY=socks5://…` в `.env`
+- **Почта:** обычно работает на сервере `mail.irk138.ru` (5.35.125.156); с домашнего ПК TLS может отклоняться — тестируйте на VPS
 
 ### Полезные команды
 
@@ -143,18 +98,16 @@ composer run dev
 
 ---
 
-## Docker (сервер)
-
-Изолированный стек без конфликта с kanka (8082) и library (9080): контейнеры `galinov_*`, HTTP на **127.0.0.1:8083**.
+## Docker
 
 ```bash
 cp .env.docker.example .env
-# задайте APP_KEY, APP_URL, DB_PASSWORD, MYSQL_ROOT_PASSWORD
 docker compose build
 docker compose up -d
 ```
 
+Подробнее: [docker/README.md](docker/README.md).
 
 ---
 
-Проект учебный. Фреймворк Laravel распространяется под лицензией MIT.
+Фреймворк Laravel распространяется под лицензией MIT.

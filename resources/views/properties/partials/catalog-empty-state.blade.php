@@ -5,7 +5,7 @@
 <div class="space-y-8">
     <div class="card p-10 text-center border-amber-200 bg-amber-50/50">
         <p class="text-xl font-semibold text-gray-800 mb-2">По заданным параметрам объекты не найдены</p>
-        <p class="text-sm text-gray-600">Измените фильтры или посмотрите похожие варианты ниже. Менеджер агентства может подобрать объекты вручную.</p>
+        <p class="text-sm text-gray-600">Измените фильтры или посмотрите похожие варианты ниже. Риэлтор агентства может подобрать объекты вручную.</p>
         <a href="{{ route('properties.index') }}" class="btn mt-6 inline-block">Сбросить все фильтры</a>
     </div>
 
@@ -21,8 +21,8 @@
         </div>
     @endif
 
-    <div class="card p-8" id="zayavka-menedzheru">
-        <h2 class="text-xl font-bold mb-2">Оставить заявку менеджеру</h2>
+    <div class="card p-8" id="zayavka-rieltoru">
+        <h2 class="text-xl font-bold mb-2">Оставить заявку риэлтору</h2>
         <p class="text-sm text-gray-600 mb-6">Опишите пожелания — риэлтор подберёт объекты по вашим критериям и свяжется с вами.</p>
 
         <form method="POST" action="{{ route('properties.selection-request.store') }}" class="space-y-4 max-w-xl">
@@ -56,7 +56,7 @@
             @if(count($capturedFilters) > 0)
                 <p class="text-xs text-gray-500">К заявке приложены текущие параметры поиска с этой страницы.</p>
             @endif
-            <button type="submit" class="btn-primary">Отправить заявку менеджеру</button>
+            <button type="submit" class="btn-primary">Отправить заявку риэлтору</button>
         </form>
     </div>
 </div>

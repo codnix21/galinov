@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 /**
- * Копирует демо-фото из database/seeders/media/ в storage/app/public.
+ * Копирует фото из database/seeders/media/ в storage/app/public.
  * В БД — только относительные пути; у каждого объявления свой набор файлов.
  */
 final class DemoImageFactory
@@ -125,7 +125,7 @@ final class DemoImageFactory
 
         if ($missing !== []) {
             throw new RuntimeException(
-                'Не найдены демо-фото в ' . self::MEDIA_DIR . '. Убедитесь, что каталог database/seeders/media/ включён в поставку проекта.' . "\n"
+                'Не найдены фото сидера в ' . self::MEDIA_DIR . '. Убедитесь, что каталог database/seeders/media/ включён в поставку проекта.' . "\n"
                 . 'Отсутствуют: ' . implode(', ', $missing)
             );
         }
@@ -140,7 +140,7 @@ final class DemoImageFactory
     {
         $source = self::sourcePath($relativeSource);
         if (!is_file($source)) {
-            throw new RuntimeException("Демо-файл не найден: {$relativeSource}. Проверьте каталог database/seeders/media/.");
+            throw new RuntimeException("Файл сидера не найден: {$relativeSource}. Проверьте каталог database/seeders/media/.");
         }
 
         $stem = pathinfo($relativeSource, PATHINFO_FILENAME);
@@ -159,7 +159,7 @@ final class DemoImageFactory
     {
         $source = self::sourcePath($relativeSource);
         if (!is_file($source)) {
-            throw new RuntimeException("Демо-файл не найден: {$relativeSource}. Проверьте каталог database/seeders/media/.");
+            throw new RuntimeException("Файл сидера не найден: {$relativeSource}. Проверьте каталог database/seeders/media/.");
         }
 
         $basename = pathinfo($relativeSource, PATHINFO_FILENAME);

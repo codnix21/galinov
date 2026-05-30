@@ -84,17 +84,50 @@ class PropertyCatalogFilter
             $query->whereHas('images');
         }
 
+        self::applyOwnersCountFilter($query, $request);
+
         self::applyHouseFilters($query, $request);
+        self::applyLandFilters($query, $request);
+        self::applyCommercialFilters($query, $request);
 
         return self::applySort($query, $request->string('sort')->toString());
     }
 
+    public static function applyOwnersCountFilter(Builder $query, Request $request): Builder
+    {
+        if (! $request->filled('owners_count')) {
+            return $query;
+        }
+
+        return match ($request->string('owners_count')->toString()) {
+            '1' => $query->has('owners', '=', 1),
+            '2' => $query->has('owners', '=', 2),
+            '3plus' => $query->has('owners', '>=', 3),
+            default => $query,
+        };
+    }
+
+    /** @return array<string, string> */
+    public static function ownersCountOptions(): array
+    {
+        return [
+            '1' => '1 собственник',
+            '2' => '2 собственника',
+            '3plus' => '3 и более',
+        ];
+    }
+
     public static function applyHouseFilters(Builder $query, Request $request): Builder
     {
-        $houseOnlyKeys = ['tip_doma', 'est_tsokol', 'garazh', 'parking', 'internet', 'min_ploshchad_uchastka', 'max_ploshchad_uchastka'];
+        $type = $request->string('type')->toString();
+        if (in_array($type, ['land', 'commercial'], true)) {
+            return $query;
+        }
+
+        $houseOnlyKeys = ['tip_doma', 'est_tsokol', 'garazh', 'parking', 'internet'];
         $hasHouseFilter = false;
         foreach ($houseOnlyKeys as $key) {
-            if ($key === 'est_tsokol' || $key === 'garazh' || $key === 'parking' || $key === 'internet') {
+            if (in_array($key, ['est_tsokol', 'garazh', 'parking', 'internet'], true)) {
                 if ($request->boolean($key)) {
                     $hasHouseFilter = true;
                     break;
@@ -105,7 +138,10 @@ class PropertyCatalogFilter
             }
         }
 
-        $type = $request->string('type')->toString();
+        if ($type === 'house' && ($request->filled('min_ploshchad_uchastka') || $request->filled('max_ploshchad_uchastka'))) {
+            $hasHouseFilter = true;
+        }
+
         if ($type !== '' && $type !== 'house') {
             return $query;
         }
@@ -142,6 +178,120 @@ class PropertyCatalogFilter
 
         if ($request->filled('max_ploshchad_uchastka')) {
             $query->where('ploshchad_uchastka', '<=', (float) $request->input('max_ploshchad_uchastka'));
+        }
+
+        return $query;
+    }
+
+    public static function applyLandFilters(Builder $query, Request $request): Builder
+    {
+        $type = $request->string('type')->toString();
+        if (in_array($type, ['house', 'commercial'], true)) {
+            return $query;
+        }
+
+        $landBooleans = ['land_gaz', 'land_voda', 'land_kanal', 'land_internet', 'land_zabor', 'land_okhrana'];
+        $columnMap = [
+            'land_gaz' => 'gaz',
+            'land_voda' => 'vodosnabzhenie',
+            'land_kanal' => 'kanalizatsiya',
+            'land_internet' => 'internet',
+            'land_zabor' => 'zabor',
+            'land_okhrana' => 'okhrana',
+        ];
+
+        $hasLandFilter = false;
+        foreach ($landBooleans as $key) {
+            if ($request->boolean($key)) {
+                $hasLandFilter = true;
+                break;
+            }
+        }
+
+        if ($type === 'land' && ($request->filled('min_ploshchad_uchastka') || $request->filled('max_ploshchad_uchastka'))) {
+            $hasLandFilter = true;
+        }
+
+        if ($type !== '' && $type !== 'land') {
+            return $query;
+        }
+
+        if ($type !== 'land' && !$hasLandFilter) {
+            return $query;
+        }
+
+        $query->where('tip', 'land');
+
+        if ($request->filled('min_ploshchad_uchastka')) {
+            $query->where('ploshchad_uchastka', '>=', (float) $request->input('min_ploshchad_uchastka'));
+        }
+
+        if ($request->filled('max_ploshchad_uchastka')) {
+            $query->where('ploshchad_uchastka', '<=', (float) $request->input('max_ploshchad_uchastka'));
+        }
+
+        foreach ($columnMap as $param => $column) {
+            if ($request->boolean($param)) {
+                $query->where($column, true);
+            }
+        }
+
+        return $query;
+    }
+
+    public static function applyCommercialFilters(Builder $query, Request $request): Builder
+    {
+        $type = $request->string('type')->toString();
+        if (in_array($type, ['house', 'land'], true)) {
+            return $query;
+        }
+
+        $commercialKeys = ['tip_pomeshcheniya', 'comm_parking', 'comm_internet', 'comm_otdelnyy_vhod', 'min_potolok', 'max_potolok'];
+        $hasCommercial = false;
+        foreach ($commercialKeys as $key) {
+            if (in_array($key, ['comm_parking', 'comm_internet', 'comm_otdelnyy_vhod'], true)) {
+                if ($request->boolean($key)) {
+                    $hasCommercial = true;
+                    break;
+                }
+            } elseif ($request->filled($key)) {
+                $hasCommercial = true;
+                break;
+            }
+        }
+
+        if ($type !== '' && $type !== 'commercial') {
+            return $query;
+        }
+
+        if ($type !== 'commercial' && !$hasCommercial) {
+            return $query;
+        }
+
+        $query->where('tip', 'commercial');
+
+        if ($request->filled('tip_pomeshcheniya')) {
+            $query->where('tip_pomeshcheniya', $request->string('tip_pomeshcheniya')->toString());
+        }
+
+        if ($request->boolean('comm_parking')) {
+            $query->where('parking', true);
+        }
+
+        if ($request->boolean('comm_internet')) {
+            $query->where('internet', true);
+        }
+
+        if ($request->boolean('comm_otdelnyy_vhod')) {
+            $query->where('otdelnyy_vhod', true);
+        }
+
+        if ($request->filled('min_potolok')) {
+            $query->where('vysota_potolkov', '>=', (float) $request->input('min_potolok'));
+        }
+
+        if ($request->filled('max_potolok')) {
+            $query->where('vysota_potolkov', '<=', (float) $request->input('max_potolok'));
         }
 
         return $query;
@@ -276,12 +426,18 @@ class PropertyCatalogFilter
     {
         $keys = [];
         foreach ([
-            'search', 'type', 'operation', 'city_id', 'min_price', 'max_price',
+            'search', 'type', 'operation', 'owners_count', 'city_id', 'min_price', 'max_price',
             'min_rooms', 'max_rooms', 'min_area', 'max_area', 'min_floor', 'max_floor',
             'has_photos', 'sort', 'tip_doma', 'min_ploshchad_uchastka', 'max_ploshchad_uchastka',
             'est_tsokol', 'garazh', 'parking', 'internet',
+            'land_gaz', 'land_voda', 'land_kanal', 'land_internet', 'land_zabor', 'land_okhrana',
+            'tip_pomeshcheniya', 'comm_parking', 'comm_internet', 'comm_otdelnyy_vhod', 'min_potolok', 'max_potolok',
         ] as $key) {
-            if (in_array($key, ['est_tsokol', 'garazh', 'parking', 'internet'], true)) {
+            if (in_array($key, [
+                'est_tsokol', 'garazh', 'parking', 'internet',
+                'land_gaz', 'land_voda', 'land_kanal', 'land_internet', 'land_zabor', 'land_okhrana',
+                'comm_parking', 'comm_internet', 'comm_otdelnyy_vhod',
+            ], true)) {
                 if ($request->boolean($key)) {
                     $keys[] = $key;
                 }

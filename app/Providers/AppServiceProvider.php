@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\MailDsnConfigurator;
 use App\Models\Contract;
 use App\Models\Property;
 use App\Models\User;
@@ -26,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        MailDsnConfigurator::apply();
     }
 
     /**

@@ -70,6 +70,26 @@
         <h3 class="text-2xl font-bold mb-3 group-hover:underline">Резервная копия БД</h3>
         <p class="text-gray-600">Создание и восстановление базы данных</p>
     </a>
+    <a href="{{ route('admin.health') }}" class="card p-8 group hover:shadow-lg transition-all">
+        <h3 class="text-2xl font-bold mb-3 group-hover:underline">Состояние системы</h3>
+        <p class="text-gray-600">БД, диск, бэкапы, Robokassa</p>
+    </a>
+    @if(auth()->user()->isAdmin())
+    <a href="{{ route('admin.settings') }}" class="card p-8 group hover:shadow-lg transition-all">
+        <h3 class="text-2xl font-bold mb-3 group-hover:underline">Настройки</h3>
+        <p class="text-gray-600">SLA заявок, контакты агентства</p>
+    </a>
+    <a href="{{ route('admin.contract-templates.index') }}" class="card p-8 group hover:shadow-lg transition-all">
+        <h3 class="text-2xl font-bold mb-3 group-hover:underline">Шаблоны договоров</h3>
+        <p class="text-gray-600">Тексты разделов для PDF</p>
+    </a>
+    @endif
+    @if(auth()->user()->canAccessAdminPanel())
+    <a href="{{ route('admin.cadastral-duplicates') }}" class="card p-8 group hover:shadow-lg transition-all">
+        <h3 class="text-2xl font-bold mb-3 group-hover:underline">Дубликаты кадастра</h3>
+        <p class="text-gray-600">Одинаковые кадастровые номера</p>
+    </a>
+    @endif
 </div>
 
 <!-- Последние объявления -->

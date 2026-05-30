@@ -56,6 +56,9 @@ class Property extends Model
         'bassein',
         'okhrana',
         'zabor',
+        'tip_pomeshcheniya',
+        'vysota_potolkov',
+        'otdelnyy_vhod',
     ];
 
     public function isHouse(): bool

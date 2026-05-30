@@ -284,6 +284,16 @@ class Contract extends Model
         return $this->hasMany(ContractSeller::class, 'dogovor_id')->orderBy('poryadok');
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ContractReview::class, 'dogovor_id');
+    }
+
+    public function rentPayments(): HasMany
+    {
+        return $this->hasMany(RentPayment::class, 'dogovor_id')->orderBy('poryadok');
+    }
+
     /** @return Collection<int, ContractSeller> */
     public function resolvedSellers(): Collection
     {

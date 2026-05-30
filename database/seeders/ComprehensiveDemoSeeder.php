@@ -21,7 +21,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Полное демо: паспорта, реквизиты документов, доли собственников, УКЭП, продавцы в договорах.
+ * Расширенное наполнение: паспорта, реквизиты документов, доли собственников, УКЭП, продавцы в договорах.
  *
  * php artisan db:seed --class=ComprehensiveDemoSeeder
  * Полный сброс: php artisan migrate:fresh --seed --force
@@ -38,6 +38,7 @@ class ComprehensiveDemoSeeder extends Seeder
 
         $stats = DB::transaction(function () {
             $this->call(ExtendedFeaturesSeeder::class);
+            $this->call(PlatformFeaturesDemoSeeder::class);
 
             return [
                 'personal' => $this->seedAllPersonalData(),
@@ -50,7 +51,7 @@ class ComprehensiveDemoSeeder extends Seeder
         });
 
         $this->command?->info(sprintf(
-            'Полное демо: персональные данные (%d), профильные документы (%d), документы объектов (%d), собственники (%d), продавцы в договорах (%d), УКЭП (%d).',
+            'Расширенное наполнение: персональные данные (%d), профильные документы (%d), документы объектов (%d), собственники (%d), продавцы в договорах (%d), УКЭП (%d).',
             $stats['personal'],
             $stats['profile_docs'],
             $stats['property_docs'],
@@ -182,7 +183,7 @@ class ComprehensiveDemoSeeder extends Seeder
                         'dannye_json' => $dannye,
                         'kommentariy_mod' => $status === 'rejected'
                             ? 'Нужен документ целиком.'
-                            : ('[RosreestrDemo] '.DocumentDataFields::summaryForComment($tip, $dannye)),
+                            : ('[ЕГРН] '.DocumentDataFields::summaryForComment($tip, $dannye)),
                         'provereno_at' => $status === 'verified' ? now()->subDays(rand(1, 20)) : null,
                         'vneshniy_id' => $status === 'verified' ? 'DEMO-'.strtoupper($tip).'-'.$property->id : null,
                         'vneshniy_status' => $status === 'verified' ? 'verified' : null,

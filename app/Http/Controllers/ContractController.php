@@ -12,6 +12,7 @@ use App\Services\AppNotifier;
 use App\Services\ContractEcpService;
 use App\Services\PropertyOwnersService;
 use App\Support\ContractApproval;
+use App\Support\ContractDealTimeline;
 use App\Support\ContractFormOptions;
 use App\Support\EnsureContractPartiesSchema;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -326,7 +327,7 @@ class ContractController extends Controller
         $user = Auth::user();
         $this->assertContractViewAccess($user, $contract);
 
-        $contract->load(['property', 'owner', 'buyer', 'realtor', 'sellers.user']);
+        $contract->load(['property', 'owner', 'buyer', 'realtor', 'sellers.user', 'reviews.user', 'rentPayments']);
 
         $ecpService = app(ContractEcpService::class);
         $ecpService->autoSignOwnerAndRealtor($contract);
@@ -347,6 +348,13 @@ class ContractController extends Controller
 
         $statusVersions = \App\Services\ProcessVersionService::history('contract', (int) $contract->id);
 
+        $dealSteps = ContractDealTimeline::build($contract);
+        $dealProgress = ContractDealTimeline::progressPercent($dealSteps);
+        $userReview = $contract->reviews->firstWhere('polzovatel_id', $user->id);
+        $canLeaveReview = ($contract->status ?? '') === 'active'
+            && ContractApproval::userIsParty($contract, $user)
+            && !$userReview;
+
         return view('contracts.show', compact(
             'contract',
             'ecpStatuses',
@@ -355,6 +363,10 @@ class ContractController extends Controller
             'displayStatusName',
             'viewerPartyRole',
             'statusVersions',
+            'dealSteps',
+            'dealProgress',
+            'userReview',
+            'canLeaveReview',
         ));
     }
 
@@ -411,7 +423,10 @@ class ContractController extends Controller
 
         $contract->load(['property', 'owner', 'buyer', 'client', 'realtor', 'sellers.user']);
 
-        $pdf = Pdf::loadView('contracts.pdf', compact('contract'));
+        $contractTip = ($contract->tip ?? $contract->type) === 'rent' ? 'rent' : 'sale';
+        $contractTemplate = \App\Models\ContractTemplate::activeForTip($contractTip);
+
+        $pdf = Pdf::loadView('contracts.pdf', compact('contract', 'contractTemplate'));
         $filename = 'dogovor_'.$contract->id.'_'.date('Y-m-d').'.pdf';
 
         return $pdf->download($filename);

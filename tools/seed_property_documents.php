@@ -49,7 +49,7 @@ foreach (Property::query()->cursor() as $property) {
             'vneshniy_status' => 'verified',
             'vneshniy_provereno_at' => now(),
             'provereno_at' => now(),
-            'kommentariy_mod' => '[RosreestrDemo] Демо-верификация для тестовой БД',
+            'kommentariy_mod' => '[ЕГРН] Автопроверка для тестовой БД',
         ]);
         $created++;
     }

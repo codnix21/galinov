@@ -59,7 +59,7 @@
         >
             <h2 class="text-2xl font-bold mb-4">Как устроена система и выход</h2>
             <p class="text-gray-700 mb-4">
-                Для преподавателя и сотрудников: <a href="{{ route('pages.process') }}" class="underline text-brand-700">схема процессов агентства</a> (описание для диплома).
+                Для сотрудников агентства: <a href="{{ route('pages.process') }}" class="underline text-brand-700">схема процессов</a>.
                 В кабинете и у риэлтора блок <strong>«Следующий шаг»</strong> подсказывает, что сделать дальше.
             </p>
             @auth

@@ -153,11 +153,14 @@
             <div><dt class="text-slate-500">Размещено</dt><dd class="font-medium">{{ $p->sozdano_at?->format('d.m.Y') ?? '—' }}</dd></div>
             <div><dt class="text-slate-500">Обновлено</dt><dd class="font-medium">{{ $p->obnovleno_at?->format('d.m.Y H:i') ?? '—' }}</dd></div>
         </dl>
-        @if(!empty($houseRows))
+        @if(!empty($houseRows) || !empty($landRows))
             <div class="mt-4 pt-4 border-t border-slate-100">
-                <p class="text-sm font-semibold text-slate-800 mb-3">Параметры дома / участка</p>
+                <p class="text-sm font-semibold text-slate-800 mb-3">{{ !empty($landRows) && empty($houseRows) ? 'Параметры участка' : 'Параметры дома / участка' }}</p>
                 <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    @foreach($houseRows as $row)
+                    @foreach($houseRows ?? [] as $row)
+                        <div><dt class="text-slate-500">{{ $row['label'] }}</dt><dd class="font-medium">{{ $row['value'] }}</dd></div>
+                    @endforeach
+                    @foreach($landRows ?? [] as $row)
                         <div><dt class="text-slate-500">{{ $row['label'] }}</dt><dd class="font-medium">{{ $row['value'] }}</dd></div>
                     @endforeach
                 </dl>

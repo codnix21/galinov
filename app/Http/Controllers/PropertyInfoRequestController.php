@@ -59,7 +59,7 @@ class PropertyInfoRequestController extends Controller
         AppNotifier::propertyInfoRequestCreated($infoRequest);
 
         return back()
-            ->with('success', 'Запрос отправлен менеджеру. Ответ появится в истории ниже.')
+            ->with('success', 'Запрос отправлен риэлтору. Ответ появится в истории ниже.')
             ->withFragment('dop-informaciya');
     }
 

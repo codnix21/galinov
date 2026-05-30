@@ -72,6 +72,8 @@
                 </div>
             </div>
             @include('properties.partials.catalog-house-filters', ['filterPrefix' => 'filters'])
+            @include('properties.partials.catalog-land-filters', ['filterPrefix' => 'filters'])
+            @include('properties.partials.catalog-commercial-filters', ['filterPrefix' => 'filters'])
         </div>
 
         <div class="border-t border-slate-200 pt-6">

@@ -274,7 +274,7 @@ class AppNotifier
             self::deliver(
                 $request->user,
                 'Заявка принята',
-                'Менеджер подберёт объекты по вашим критериям и свяжется с вами.',
+                'Риэлтор подберёт объекты по вашим критериям и свяжется с вами.',
                 route('properties.index', $request->filtry ?? []),
                 'info',
             );
@@ -298,7 +298,7 @@ class AppNotifier
             self::deliver(
                 $infoRequest->client,
                 'Запрос отправлен',
-                sprintf('По объекту «%s» менеджер ответит в истории запроса.', $propTitle),
+                sprintf('По объекту «%s» риэлтор ответит в истории запроса.', $propTitle),
                 route('properties.show', $infoRequest->nedvizhimost_id).'#dop-informaciya',
                 'info',
             );
@@ -315,7 +315,7 @@ class AppNotifier
         $propTitle = $infoRequest->property?->nazvanie ?? 'объект #'.$infoRequest->nedvizhimost_id;
         self::deliver(
             $infoRequest->client,
-            'Ответ менеджера',
+            'Ответ риэлтора',
             sprintf('По вашему запросу по «%s» получен ответ.', $propTitle),
             route('properties.show', $infoRequest->nedvizhimost_id).'#dop-informaciya',
             'success',

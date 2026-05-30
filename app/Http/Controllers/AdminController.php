@@ -17,6 +17,8 @@ use App\Support\EnsureContractPartiesSchema;
 use App\Support\PropertyCatalogFilter;
 use App\Support\PropertyFloorRules;
 use App\Support\PropertyHouseAttributes;
+use App\Support\PropertyLandAttributes;
+use App\Support\PropertyCommercialAttributes;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,9 +36,16 @@ class AdminController extends Controller
     /**
      * Проверка прав администратора
      */
-    private function checkAdmin()
+    private function checkAdmin(): void
     {
         if (!Auth::check() || !Auth::user()->isAdmin()) {
+            abort(403, 'Доступ запрещен');
+        }
+    }
+
+    private function checkAdminPanel(): void
+    {
+        if (!Auth::check() || !Auth::user()->canAccessAdminPanel()) {
             abort(403, 'Доступ запрещен');
         }
     }
@@ -58,9 +67,9 @@ class AdminController extends Controller
     /**
      * Главная страница админки: счётчики и последние записи.
      */
-    public function index(): View
+    public function index(): View|RedirectResponse
     {
-        $this->checkAdmin();
+        $this->checkAdminPanel();
 
         // Сводные цифры по справочникам статусов (idFor — id строки в таблице статусов)
         $stats = [
@@ -323,12 +332,16 @@ class AdminController extends Controller
             'images' => 'nullable|array|max:10',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,bmp|max:5120', // 5MB max per image
             ...PropertyHouseAttributes::validationRules(),
+            ...PropertyLandAttributes::validationRules(),
+            ...PropertyCommercialAttributes::validationRules(),
         ], [
             'gorod.required' => 'Укажите город: выберите населённый пункт из списка подсказок.',
             'adres_ulitsy.regex' => 'Укажите улицу и номер дома (в адресе должен быть номер).',
         ]);
 
         $validated = PropertyHouseAttributes::mergeFromRequest($request, $validated);
+        $validated = PropertyLandAttributes::mergeFromRequest($request, $validated);
+        $validated = PropertyCommercialAttributes::mergeFromRequest($request, $validated);
 
         $profanityErrors = TextCensor::propertyFieldErrors($validated['nazvanie'], $validated['opisanie']);
         if ($profanityErrors !== []) {
@@ -423,6 +436,8 @@ class AdminController extends Controller
             'delete_images' => 'nullable|array',
             'delete_images.*' => 'exists:izobrazheniya_nedvizhimosti,id',
             ...PropertyHouseAttributes::validationRules(),
+            ...PropertyLandAttributes::validationRules(),
+            ...PropertyCommercialAttributes::validationRules(),
         ], [
             'gorod.required' => 'Укажите город: выберите населённый пункт из списка подсказок.',
             'adres_ulitsy.regex' => 'Укажите улицу и номер дома (в адресе должен быть номер).',
@@ -433,6 +448,8 @@ class AdminController extends Controller
         ]);
 
         $validated = PropertyHouseAttributes::mergeFromRequest($request, $validated);
+        $validated = PropertyLandAttributes::mergeFromRequest($request, $validated);
+        $validated = PropertyCommercialAttributes::mergeFromRequest($request, $validated);
 
         $profanityErrors = TextCensor::propertyFieldErrors($validated['nazvanie'], $validated['opisanie']);
         if ($profanityErrors !== []) {

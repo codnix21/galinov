@@ -30,6 +30,12 @@
         @include('profile.partials.telegram-settings')
 
         <div class="card p-8">
+            <h2 class="text-xl font-bold mb-2">Персональные данные (152-ФЗ)</h2>
+            <p class="text-gray-600 text-sm mb-4">Выгрузка ваших данных в ZIP (профиль, документы, договоры).</p>
+            <a href="{{ route('profile.export-152fz') }}" class="btn">Скачать выгрузку</a>
+        </div>
+
+        <div class="card p-8">
             <h2 class="text-xl font-bold mb-2">Документы продавца</h2>
             <p class="text-gray-600 text-sm mb-4">Паспорт и ИНН — в профиле. ЕГРН и право собственности — в карточке объявления.</p>
             <a href="{{ route('profile.documents.index') }}" class="btn">Открыть документы продавца →</a>

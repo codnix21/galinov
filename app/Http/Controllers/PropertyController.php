@@ -20,6 +20,9 @@ use App\Support\RealtorScope;
 use App\Support\PropertyDocumentRules;
 use App\Support\PropertyFloorRules;
 use App\Support\PropertyHouseAttributes;
+use App\Support\PropertyLandAttributes;
+use App\Support\PropertyCommercialAttributes;
+use App\Support\CadastralDuplicateChecker;
 use App\Support\PropertyCatalogFilter;
 use App\Support\PropertyCatalogSimilar;
 use App\Support\PropertyListingAuthor;
@@ -284,12 +287,16 @@ class PropertyController extends Controller
             'images' => 'nullable|array|max:10',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,bmp|max:5120', // 5MB max per image
             ...PropertyHouseAttributes::validationRules(),
+            ...PropertyLandAttributes::validationRules(),
+            ...PropertyCommercialAttributes::validationRules(),
         ], [
             'gorod.required' => 'Укажите город: выберите населённый пункт из списка подсказок.',
             'adres_ulitsy.regex' => 'Укажите улицу и номер дома (в адресе должен быть номер).',
         ]);
 
         $validated = PropertyHouseAttributes::mergeFromRequest($request, $validated);
+        $validated = PropertyLandAttributes::mergeFromRequest($request, $validated);
+        $validated = PropertyCommercialAttributes::mergeFromRequest($request, $validated);
 
         // Должен быть авторизован и существовать в polzovateli
         if (!Auth::check()) {
@@ -358,6 +365,11 @@ class PropertyController extends Controller
         });
 
         PropertyOwnersService::ensureDefaultOwner($property);
+
+        $cadastralDups = CadastralDuplicateChecker::findDuplicates($property->kadastrovy_nomer, $property->id);
+        if ($cadastralDups->isNotEmpty()) {
+            session()->flash('warning', 'Обнаружен дубликат кадастрового номера (объявления №'.$cadastralDups->pluck('id')->join(', ').').');
+        }
 
         // Разные сообщения пользователю в зависимости от выбранного статуса
         if ($status->kod === 'draft') {
@@ -539,6 +551,8 @@ class PropertyController extends Controller
             'delete_images' => 'nullable|array',
             'delete_images.*' => 'exists:izobrazheniya_nedvizhimosti,id',
             ...PropertyHouseAttributes::validationRules(),
+            ...PropertyLandAttributes::validationRules(),
+            ...PropertyCommercialAttributes::validationRules(),
         ], [
             'gorod.required' => 'Укажите город: выберите населённый пункт из списка подсказок.',
             'adres_ulitsy.regex' => 'Укажите улицу и номер дома (в адресе должен быть номер).',
@@ -549,6 +563,8 @@ class PropertyController extends Controller
         ]);
 
         $validated = PropertyHouseAttributes::mergeFromRequest($request, $validated);
+        $validated = PropertyLandAttributes::mergeFromRequest($request, $validated);
+        $validated = PropertyCommercialAttributes::mergeFromRequest($request, $validated);
 
         // Проверка названия и описания на запрещённые слова
         $profanityErrors = TextCensor::propertyFieldErrors($validated['nazvanie'], $validated['opisanie']);
@@ -628,6 +644,11 @@ class PropertyController extends Controller
         $newSt = $property->status_obyavleniya ?? $property->status;
         if ($newSt === 'pending_review') {
             $msg = 'Изменения сохранены. Объявление отправлено на модерацию.';
+        }
+
+        $cadastralDups = CadastralDuplicateChecker::findDuplicates($property->kadastrovy_nomer, $property->id);
+        if ($cadastralDups->isNotEmpty()) {
+            session()->flash('warning', 'Обнаружен дубликат кадастрового номера (объявления №'.$cadastralDups->pluck('id')->join(', ').').');
         }
 
         return redirect()->route('properties.show', $property)->with('success', $msg);

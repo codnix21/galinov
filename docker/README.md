@@ -23,9 +23,9 @@ docker compose exec app php artisan db:seed --class=DemoDataSeeder
 
 Проверка: `curl -I http://127.0.0.1:8083`
 
-Демо-фото уже в `database/seeders/media/`. Пароль демо: `Password123!`, админ: `demo.admin@agency.local`
+Фото для сидера уже в `database/seeders/media/`. Пароль тестовых учёток: `Password123!`, админ: `demo.admin@agency.local`
 
-## Демо-данные (важно: только внутри контейнера)
+## Наполнение БД (важно: только внутри контейнера)
 
 На VPS **не запускайте** `php artisan` в `/opt/galinov` с хоста — там нет папки `vendor`. Все команды — через Docker:
 
@@ -40,7 +40,7 @@ docker compose up -d
 docker compose exec app php artisan db:seed --class=DemoDataSeeder
 ```
 
-**Сообщение «Демо-данные уже загружены»** — в БД уже есть демо. Варианты:
+**Сообщение «Данные сидера уже загружены»** — в БД уже есть тестовое наполнение. Варианты:
 
 1. **Только перезалить фото** (объявления и пользователи останутся, обновятся документы/заявки из сидера):
 

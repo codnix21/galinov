@@ -8,6 +8,11 @@
     <div class="mb-8">
         <h1 class="text-4xl font-bold mb-2">Редактировать пользователя</h1>
         <p class="text-gray-600">Внесите изменения в данные пользователя</p>
+        @if(auth()->user()->isAdmin())
+            <p class="mt-3">
+                <a href="{{ route('admin.users.export-152fz', $user) }}" class="text-sm text-brand-700 hover:underline">Выгрузка персональных данных (152-ФЗ)</a>
+            </p>
+        @endif
     </div>
 
     <form method="POST" action="{{ route('admin.users.update', $user) }}" class="card p-8">

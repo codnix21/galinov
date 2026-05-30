@@ -234,7 +234,17 @@
         </div>
     @endif
 
+    <div class="card p-6 mb-6" id="deal-timeline">
+        <h3 class="text-xl font-bold mb-4">Ход сделки</h3>
+        @include('contracts.partials.deal-timeline', ['steps' => $dealSteps ?? [], 'progress' => $dealProgress ?? 0])
+    </div>
+
+    @include('contracts.partials.rent-schedule', ['contract' => $contract])
+    @include('contracts.partials.review-form', compact('contract', 'canLeaveReview', 'userReview'))
+
+    <div id="ecp">
     @include('contracts.partials.ecp-signatures', compact('contract', 'ecpStatuses', 'canSignEcp', 'ecpFullySigned', 'viewerPartyRole'))
+    </div>
 
     @if(($contract->tip ?? $contract->type) === 'rent')
         <div class="card p-6 mb-6 border border-slate-200 bg-slate-50/60">

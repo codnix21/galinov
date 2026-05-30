@@ -252,7 +252,13 @@ class User extends Authenticatable
         return $role === 'realtor';
     }
 
-    /** Админ или риелтор — доступ к модерации и служебным разделам */
+    /** Админ — панель /admin */
+    public function canAccessAdminPanel(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    /** Админ или риэлтор — модерация и CRM */
     public function isStaff(): bool
     {
         return $this->isAdmin() || $this->isRealtor();

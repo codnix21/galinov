@@ -121,6 +121,8 @@
         </div>
 
         @include('properties.partials.house-fields')
+        @include('properties.partials.land-fields')
+        @include('properties.partials.commercial-fields')
 
         <div class="grid grid-cols-2 gap-6 mb-6">
             <div>

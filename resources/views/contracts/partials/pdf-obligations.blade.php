@@ -6,6 +6,9 @@
 @endphp
 <div class="section obligations">
     <div class="section-title">{{ $sectionNum ?? '4' }}. Права и обязанности сторон</div>
+    @if(!empty($contractTemplate?->obyazannosti))
+        <p style="margin-bottom: 10px; text-align: justify;">{{ $contractTemplate->obyazannosti }}</p>
+    @else
     <p style="margin-bottom: 10px;">
         Стороны принимают на себя следующие обязанности в соответствии с настоящим договором
         {{ $isRent ? 'найма (аренды)' : 'купли-продажи' }} недвижимости:
@@ -100,4 +103,8 @@
         <li>Уведомлять друг друга об изменении контактных данных, адресов.</li>
         <li>Явиться для подписания передаточного акта в оговорённый срок.</li>
     </ul>
+    @endif
+    @if(!empty($contractTemplate?->zaklyuchenie))
+        <p style="margin-top: 12px; text-align: justify;"><strong>Заключительные положения.</strong> {{ $contractTemplate->zaklyuchenie }}</p>
+    @endif
 </div>

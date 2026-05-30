@@ -16,6 +16,7 @@ class PropertyInquiry extends Model
     protected $fillable = [
         'nedvizhimost_id',
         'polzovatel_id',
+        'naznachen_rieltor_id',
         'imya',
         'telefon',
         'email',
@@ -41,5 +42,10 @@ class PropertyInquiry extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'polzovatel_id');
+    }
+
+    public function assignedRealtor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'naznachen_rieltor_id');
     }
 }

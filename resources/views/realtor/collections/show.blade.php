@@ -16,6 +16,7 @@
     <div class="flex flex-wrap gap-2 mt-2 items-center">
         <code class="text-sm break-all flex-1">{{ $collection->publicUrl() }}</code>
         <a href="{{ $collection->publicUrl() }}" target="_blank" class="btn text-sm">Открыть</a>
+        <a href="{{ route('realtor.collections.pdf', $collection) }}" class="btn-primary text-sm">Скачать PDF</a>
     </div>
 </div>
 

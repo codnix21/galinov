@@ -48,7 +48,7 @@ $client = User::firstOrCreate(
     ['email_polzovatela' => $clientEmail],
     [
         'familia' => 'Клиент',
-        'imya' => 'Демо',
+        'imya' => 'Тест',
         'otchestvo' => null,
         'parol' => Hash::make('Password123!'),
         'rol_id' => $clientRole->id,

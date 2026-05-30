@@ -176,10 +176,29 @@
         Договор создаётся автоматически при онлайн-покупке или экспресс-сделке на карточке объявления.
         Здесь — только ваши сделки, где вы участник (покупатель или продавец).
     </p>
-    <div class="mb-6">
+    @if(!empty($dealTimelines))
+        <div class="card p-6 mb-8">
+            <h3 class="text-xl font-bold mb-4">Ход ваших сделок</h3>
+            <div class="space-y-6">
+                @foreach($dealTimelines as $item)
+                    <div class="border border-slate-200 rounded-xl p-4">
+                        <p class="font-semibold mb-3">
+                            <a href="{{ route('contracts.show', $item['contract']) }}" class="text-brand-700 hover:underline">
+                                {{ $item['contract']->property?->nazvanie ?? 'Договор №'.$item['contract']->id }}
+                            </a>
+                        </p>
+                        @include('contracts.partials.deal-timeline', ['steps' => $item['steps'], 'progress' => $item['progress']])
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    <div class="mb-6 flex flex-wrap gap-2">
         <a href="{{ route('contracts.index') }}" class="btn">
             Мои договоры
         </a>
+        <a href="{{ route('saved-searches.index') }}" class="btn">Сохранённые поиски</a>
         @if(isset($stats['pending_contracts']) && $stats['pending_contracts'] > 0)
             <span class="ml-2 text-sm text-yellow-600">
                 ({{ $stats['pending_contracts'] }} ожидают подтверждения)

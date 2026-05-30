@@ -15,10 +15,13 @@ class ContractSeller extends Model
         'polzovatel_id',
         'dolya_procent',
         'poryadok',
+        'ecp_podpis_at',
+        'ecp_podpis_nomera',
     ];
 
     protected $casts = [
         'dolya_procent' => 'decimal:2',
+        'ecp_podpis_at' => 'datetime',
     ];
 
     public function contract(): BelongsTo

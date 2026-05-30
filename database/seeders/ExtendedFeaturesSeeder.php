@@ -17,7 +17,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Доп. демо: параметры домов, собственники, продавцы в договорах, заявки на подбор и доп. информацию.
+ * Доп. наполнение: параметры домов, собственники, продавцы в договорах, заявки на подбор и доп. информацию.
  *
  * php artisan db:seed --class=ExtendedFeaturesSeeder
  */
@@ -42,7 +42,7 @@ class ExtendedFeaturesSeeder extends Seeder
         });
 
         $this->command?->info(sprintf(
-            'Доп. демо: дома обновлены (%d), собственников (%d), продавцов в договорах (%d), заявок на подбор (%d), запросов доп. инфо (%d).',
+            'Доп. наполнение: дома обновлены (%d), собственников (%d), продавцов в договорах (%d), заявок на подбор (%d), запросов доп. инфо (%d).',
             $housesUpdated,
             $ownersCreated,
             $sellersCreated,

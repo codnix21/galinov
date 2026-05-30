@@ -12,7 +12,9 @@ use App\Models\User;
 use App\Services\AppNotifier;
 use App\Support\ContractFormOptions;
 use App\Support\RealtorScope;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -202,6 +204,25 @@ class RealtorCollectionController extends Controller
         $collection->delete();
 
         return redirect()->route('realtor.collections.index')->with('success', 'Подборка удалена');
+    }
+
+    public function pdf(PropertyCollection $collection): Response
+    {
+        RealtorScope::assertRealtorOwns((int) $collection->rieltor_id);
+
+        $collection->load([
+            'client',
+            'realtor',
+            'items.property.images',
+            'items.property.cityRelation',
+        ]);
+
+        $pdf = Pdf::loadView('realtor.collections.pdf', compact('collection'))
+            ->setPaper('a4', 'portrait');
+
+        $filename = 'podborka-'.$collection->id.'.pdf';
+
+        return $pdf->download($filename);
     }
 
     private function validateAndAssignClient(int $rieltorId, ?int $klientId): ?RedirectResponse

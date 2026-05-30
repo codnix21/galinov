@@ -31,6 +31,14 @@ use App\Http\Controllers\PropertySelectionRequestController;
 use App\Http\Controllers\PropertyInfoRequestController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\RobokassaPaymentController;
+use App\Http\Controllers\ContractReviewController;
+use App\Http\Controllers\RentPaymentController;
+use App\Http\Controllers\ResponseTemplateController;
+use App\Http\Controllers\RealtorAnalyticsController;
+use App\Http\Controllers\LeadAssignmentController;
+use App\Http\Controllers\PersonalDataExportController;
+use App\Http\Controllers\Admin\AdminContractTemplateController;
+use App\Http\Controllers\Admin\AdminCadastralController;
 use Illuminate\Support\Facades\Route;
 
 // Главная страница (приветствие)
@@ -75,6 +83,10 @@ Route::post('/telegram/webhook', \App\Http\Controllers\TelegramWebhookController
 // Личный кабинет: нужен вход и аккаунт не заблокирован
 Route::middleware(['auth', 'check.blocked'])->group(function () {
     Route::get('/cabinet', [CabinetController::class, 'index'])->name('cabinet.index');
+    Route::get('/saved-searches', [\App\Http\Controllers\SavedSearchController::class, 'index'])->name('saved-searches.index');
+    Route::post('/saved-searches', [\App\Http\Controllers\SavedSearchController::class, 'store'])->name('saved-searches.store');
+    Route::patch('/saved-searches/{savedSearch}/toggle', [\App\Http\Controllers\SavedSearchController::class, 'toggle'])->name('saved-searches.toggle');
+    Route::delete('/saved-searches/{savedSearch}', [\App\Http\Controllers\SavedSearchController::class, 'destroy'])->name('saved-searches.destroy');
     Route::get('/selection-request', [PropertySelectionRequestController::class, 'create'])->name('properties.selection-request.create');
 
     Route::middleware('realtor.training')->group(function () {
@@ -86,6 +98,9 @@ Route::middleware(['auth', 'check.blocked'])->group(function () {
         Route::prefix('realtor')->name('realtor.')->group(function () {
             Route::get('/', [RealtorController::class, 'dashboard'])->name('dashboard');
             Route::get('/properties', [RealtorController::class, 'properties'])->name('properties');
+
+            Route::get('/kanban', [\App\Http\Controllers\RealtorKanbanController::class, 'index'])->name('kanban');
+            Route::patch('/kanban/clients/{realtorClient}', [\App\Http\Controllers\RealtorKanbanController::class, 'updateStatus'])->name('kanban.update');
 
             Route::get('/clients', [RealtorClientController::class, 'index'])->name('clients.index');
             Route::get('/clients/search', [RealtorClientController::class, 'searchClients'])->name('clients.search');
@@ -109,14 +124,22 @@ Route::middleware(['auth', 'check.blocked'])->group(function () {
             Route::post('/collections', [RealtorCollectionController::class, 'store'])->name('collections.store');
             Route::post('/collections/from-favorites', [RealtorCollectionController::class, 'storeFromFavorites'])->name('collections.from-favorites');
             Route::get('/collections/{collection}', [RealtorCollectionController::class, 'show'])->name('collections.show');
+            Route::get('/collections/{collection}/pdf', [RealtorCollectionController::class, 'pdf'])->name('collections.pdf');
             Route::post('/collections/{collection}/properties', [RealtorCollectionController::class, 'addProperty'])->name('collections.add-property');
             Route::delete('/collections/{collection}/properties/{property}', [RealtorCollectionController::class, 'removeProperty'])->name('collections.remove-property');
             Route::delete('/collections/{collection}', [RealtorCollectionController::class, 'destroy'])->name('collections.destroy');
 
+            Route::get('/analytics', [RealtorAnalyticsController::class, 'index'])->name('analytics');
+            Route::get('/templates', [ResponseTemplateController::class, 'index'])->name('templates.index');
+            Route::post('/templates', [ResponseTemplateController::class, 'store'])->name('templates.store');
+            Route::delete('/templates/{template}', [ResponseTemplateController::class, 'destroy'])->name('templates.destroy');
+
             Route::get('/inquiries', [PropertyInquiryController::class, 'index'])->name('inquiries.index');
             Route::post('/inquiries/{inquiry}/process', [PropertyInquiryController::class, 'process'])->name('inquiries.process');
+            Route::patch('/inquiries/{inquiry}/assign', [LeadAssignmentController::class, 'assignInquiry'])->name('inquiries.assign');
             Route::get('/selection-requests', [PropertySelectionRequestController::class, 'index'])->name('selection-requests.index');
             Route::post('/selection-requests/{selectionRequest}/process', [PropertySelectionRequestController::class, 'process'])->name('selection-requests.process');
+            Route::patch('/selection-requests/{selectionRequest}/assign', [LeadAssignmentController::class, 'assignSelection'])->name('selection-requests.assign');
             Route::get('/info-requests', [PropertyInfoRequestController::class, 'index'])->name('info-requests.index');
             Route::post('/info-requests/{infoRequest}/reply', [PropertyInfoRequestController::class, 'reply'])->name('info-requests.reply');
             Route::post('/info-requests/{infoRequest}/close', [PropertyInfoRequestController::class, 'close'])->name('info-requests.close');
@@ -191,6 +214,11 @@ Route::middleware(['auth', 'check.blocked'])->group(function () {
     Route::get('/contracts/{contract}/print-rent', [ContractController::class, 'printRent'])->whereNumber('contract')->name('contracts.print-rent');
     Route::post('/contracts/{contract}/scan', [ContractController::class, 'uploadScan'])->whereNumber('contract')->name('contracts.upload-scan');
     Route::get('/contracts/{contract}', [ContractController::class, 'show'])->whereNumber('contract')->name('contracts.show');
+    Route::post('/contracts/{contract}/reviews', [ContractReviewController::class, 'store'])->whereNumber('contract')->name('contracts.reviews.store');
+    Route::post('/contracts/{contract}/rent-schedule', [RentPaymentController::class, 'generate'])->whereNumber('contract')->name('contracts.rent-schedule.generate');
+    Route::post('/rent-payments/{payment}/paid', [RentPaymentController::class, 'markPaid'])->name('rent-payments.paid');
+
+    Route::get('/profile/export-152fz', [PersonalDataExportController::class, 'exportSelf'])->name('profile.export-152fz');
     
     // Настройки профиля (имя, email, пароль, удаление аккаунта)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -243,6 +271,18 @@ Route::middleware(['auth', 'check.blocked'])->prefix('admin')->name('admin.')->g
     Route::get('/reports/xlsx', [ReportController::class, 'exportXlsx'])->name('reports.xlsx');
 
     Route::get('/audit-logs', [\App\Http\Controllers\AdminAuditLogController::class, 'index'])->name('audit-logs');
+
+    Route::get('/health', [\App\Http\Controllers\Admin\AdminHealthController::class, 'index'])->name('health');
+    Route::get('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'index'])->name('settings');
+    Route::put('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'update'])->name('settings.update');
+
+    Route::get('/contract-templates', [AdminContractTemplateController::class, 'index'])->name('contract-templates.index');
+    Route::get('/contract-templates/{template}/edit', [AdminContractTemplateController::class, 'edit'])->name('contract-templates.edit');
+    Route::put('/contract-templates/{template}', [AdminContractTemplateController::class, 'update'])->name('contract-templates.update');
+
+    Route::get('/cadastral-duplicates', [AdminCadastralController::class, 'index'])->name('cadastral-duplicates');
+
+    Route::get('/users/{user}/export-152fz', [PersonalDataExportController::class, 'exportUser'])->name('users.export-152fz');
 
     Route::get('/database', [\App\Http\Controllers\Admin\AdminDatabaseController::class, 'index'])->name('database');
     Route::post('/database/backup', [\App\Http\Controllers\Admin\AdminDatabaseController::class, 'store'])->name('database.backup');

@@ -10,11 +10,11 @@
 
     @if($ecpFullySigned)
         <p class="text-sm text-green-800 font-medium mb-4">
-            ✓ Договор подписан всеми сторонами в электронном виде. Скачайте PDF — в нём отметки собственника, покупателя и риэлтора.
+            ✓ Договор подписан всеми сторонами в электронном виде. Скачайте PDF — в нём отметки всех собственников, покупателя и риэлтора.
         </p>
     @else
         <p class="text-sm text-gray-600 mb-4">
-            Собственник и риэлтор подписывают автоматически при создании договора.
+            Каждый собственник (продавец) и риэлтор подписывают автоматически при оформлении сделки после оплаты.
             @if($canSignEcp)
                 Вам нужно нажать кнопку ниже — без вашей подписи сделка не завершена в системе.
             @else
@@ -45,7 +45,7 @@
     @if($canSignEcp)
         <form method="POST" action="{{ route('contracts.sign-ecp', $contract) }}" class="p-4 bg-white rounded-xl border border-indigo-300 mb-4">
             @csrf
-            <p class="text-sm font-medium mb-3">Вы — покупатель. Подпишите договор усиленной ЭП (демо).</p>
+            <p class="text-sm font-medium mb-3">Вы — покупатель. Подпишите договор усиленной электронной подписью.</p>
             <label class="flex items-start gap-2 text-sm mb-4">
                 <input type="checkbox" name="accept_ecp" value="1" required class="mt-1">
                 <span>Ознакомлен(а) с текстом договора и согласен(на) на подписание УКЭП.</span>

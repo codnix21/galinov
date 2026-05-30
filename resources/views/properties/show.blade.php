@@ -231,6 +231,8 @@
                         </div>
                     @endif
                     @include('properties.partials.house-characteristics')
+                    @include('properties.partials.land-characteristics')
+                    @include('properties.partials.commercial-characteristics')
                     @if($property->user)
                     <div class="pb-4 border-b border-gray-200">
                         <span class="text-sm text-gray-600 block mb-1">Автор объявления</span>
@@ -344,7 +346,7 @@
                     @if($isActiveListing && (int)Auth::id() !== (int)($property->polzovatel_id ?? 0))
                         <a href="{{ route('purchase.buy', $property) }}" class="btn-primary block text-center text-sm w-full">Купить без риэлтора</a>
                     @endif
-                    @if(Auth::user()->isStaff() || (int)Auth::id() === (int)($property->polzovatel_id ?? 0))
+                    @if(($canManage ?? false) && ($isActiveListing ?? false))
                         <a href="{{ route('deals.express', $property) }}" class="btn block text-center text-sm w-full border-green-600 text-green-800">Экспресс-сделка (договор авто)</a>
                     @endif
                 @else

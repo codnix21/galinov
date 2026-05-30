@@ -27,7 +27,7 @@
 {{-- Фильтры каталога — параметры уходят в GET, пагинация сохраняет query --}}
 <div class="card p-6 mb-8 catalog-filters">
     <h2 class="text-lg font-bold mb-4">Поиск и фильтры</h2>
-    <form method="GET" action="{{ route('properties.index') }}">
+    <form id="catalog-filters-form" method="GET" action="{{ route('properties.index') }}">
         <div class="mb-4">
             <label class="form-label">Поиск</label>
             <input type="text" name="search" value="{{ request('search') }}" class="form-input" placeholder="Квартира Иркутск, адрес или № объявления (#15)">
@@ -45,7 +45,7 @@
             </div>
             <div>
                 <label class="form-label">Тип</label>
-                <select name="type" class="form-input">
+                <select name="type" id="catalog-type-select" class="form-input">
                     <option value="">Все</option>
                     @foreach(\App\Models\Property::tipNazvaniya() as $value => $label)
                         <option value="{{ $value }}" {{ request('type') == $value ? 'selected' : '' }}>{{ $label }}</option>
@@ -61,6 +61,15 @@
                 </select>
             </div>
             <div>
+                <label class="form-label">Собственников</label>
+                <select name="owners_count" class="form-input">
+                    <option value="">Любое</option>
+                    @foreach(\App\Support\PropertyCatalogFilter::ownersCountOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ request('owners_count') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
                 <label class="form-label">Сортировка</label>
                 <select name="sort" class="form-input">
                     @foreach(\App\Support\PropertyCatalogFilter::sortOptions() as $value => $label)
@@ -70,35 +79,35 @@
             </div>
             <div>
                 <label class="form-label">Цена от (₽)</label>
-                <input type="number" name="min_price" value="{{ request('min_price') }}" class="form-input" min="0" placeholder="0">
+                <input type="number" name="min_price" value="{{ request()->filled('min_price') ? request('min_price') : '' }}" class="form-input" min="0" placeholder="от">
             </div>
             <div>
                 <label class="form-label">Цена до (₽)</label>
-                <input type="number" name="max_price" value="{{ request('max_price') }}" class="form-input" min="0" placeholder="10000000">
+                <input type="number" name="max_price" value="{{ request()->filled('max_price') ? request('max_price') : '' }}" class="form-input" min="0" placeholder="до">
             </div>
-            <div>
+            <div data-show-types="apartment,house">
                 <label class="form-label">Комнат от</label>
-                <input type="number" name="min_rooms" value="{{ request('min_rooms') }}" class="form-input" min="0" max="20" placeholder="0">
+                <input type="number" name="min_rooms" value="{{ request()->filled('min_rooms') ? request('min_rooms') : '' }}" class="form-input" min="0" max="20" placeholder="от">
             </div>
-            <div>
+            <div data-show-types="apartment,house">
                 <label class="form-label">Комнат до</label>
-                <input type="number" name="max_rooms" value="{{ request('max_rooms') }}" class="form-input" min="0" max="20">
+                <input type="number" name="max_rooms" value="{{ request()->filled('max_rooms') ? request('max_rooms') : '' }}" class="form-input" min="0" max="20" placeholder="до">
             </div>
-            <div>
+            <div data-show-types="apartment,house,commercial">
                 <label class="form-label">Площадь от (м²)</label>
-                <input type="number" name="min_area" value="{{ request('min_area') }}" class="form-input" min="0">
+                <input type="number" name="min_area" value="{{ request()->filled('min_area') ? request('min_area') : '' }}" class="form-input" min="0" placeholder="от">
             </div>
-            <div>
+            <div data-show-types="apartment,house,commercial">
                 <label class="form-label">Площадь до (м²)</label>
-                <input type="number" name="max_area" value="{{ request('max_area') }}" class="form-input" min="0">
+                <input type="number" name="max_area" value="{{ request()->filled('max_area') ? request('max_area') : '' }}" class="form-input" min="0" placeholder="до">
             </div>
-            <div>
+            <div data-show-types="apartment,house">
                 <label class="form-label">Этаж от</label>
-                <input type="number" name="min_floor" value="{{ request('min_floor') }}" class="form-input">
+                <input type="number" name="min_floor" value="{{ request()->filled('min_floor') ? request('min_floor') : '' }}" class="form-input" placeholder="от">
             </div>
-            <div>
+            <div data-show-types="apartment,house">
                 <label class="form-label">Этаж до</label>
-                <input type="number" name="max_floor" value="{{ request('max_floor') }}" class="form-input">
+                <input type="number" name="max_floor" value="{{ request()->filled('max_floor') ? request('max_floor') : '' }}" class="form-input" placeholder="до">
             </div>
             <div class="flex items-end min-h-[42px]">
                 <label class="flex items-center gap-2.5 cursor-pointer py-2.5">
@@ -109,9 +118,19 @@
         </div>
 
         @include('properties.partials.catalog-house-filters')
-        <div class="flex gap-3 mt-4">
-            <button type="submit" class="btn-primary">Применить</button>
+        @include('properties.partials.catalog-land-filters')
+        @include('properties.partials.catalog-commercial-filters')
+
+        <p class="text-xs text-slate-500 mt-3 hidden" id="catalog-type-hint">Выберите тип недвижимости, чтобы увидеть подходящие фильтры.</p>
+
+        <div class="flex flex-wrap gap-3 mt-4 items-center">
+            <button type="submit" class="btn-primary" form="catalog-filters-form">Применить</button>
             <a href="{{ route('properties.index') }}" class="btn">Сбросить</a>
+            @auth
+                <button type="button" class="btn text-sm" onclick="document.getElementById('save-search-panel').classList.toggle('hidden')">
+                    Сохранить поиск
+                </button>
+            @endauth
         </div>
         @php $activeKeys = \App\Support\PropertyCatalogFilter::activeFilterKeys(request()); @endphp
         @if(count($activeKeys) > 0)
@@ -136,6 +155,31 @@
             </div>
         @endif
     </form>
+
+    @auth
+        <div id="save-search-panel" class="hidden mt-4 p-4 border border-brand-200 rounded-xl bg-brand-50/50">
+            <form method="POST" action="{{ route('saved-searches.store') }}">
+                @csrf
+                @foreach(request()->except(['page']) as $key => $val)
+                    @if(is_array($val))
+                        @foreach($val as $k => $v)
+                            <input type="hidden" name="{{ $key }}[{{ $k }}]" value="{{ $v }}">
+                        @endforeach
+                    @else
+                        <input type="hidden" name="{{ $key }}" value="{{ $val }}">
+                    @endif
+                @endforeach
+                <label class="form-label">Название сохранённого поиска</label>
+                <div class="flex flex-wrap gap-2 mt-1">
+                    <input type="text" name="nazvanie" required class="form-input flex-1 min-w-[200px]" placeholder="Например: 2-комн. Иркутск до 5 млн">
+                    <label class="flex items-center gap-2 text-sm px-2">
+                        <input type="checkbox" name="uvedomleniya" value="1" checked> Уведомлять о новых
+                    </label>
+                    <button type="submit" class="btn-primary text-sm">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    @endauth
 </div>
 
 <!-- Карточки объявлений -->

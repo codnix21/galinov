@@ -8,10 +8,10 @@ use App\Support\PropertyDocumentRules;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-/** Автоматическая проверка документов и кадастрового номера (демо-режим). */
+/** Автоматическая проверка документов и кадастрового номера (тестовый режим без внешнего API). */
 class DocumentVerificationService
 {
-    public const PROVIDER = 'RosreestrDemo';
+    public const PROVIDER = 'ЕГРН (автопроверка)';
 
     public function isDemoMode(): bool
     {

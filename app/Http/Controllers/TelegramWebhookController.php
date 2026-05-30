@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\TelegramHttp;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
@@ -57,13 +58,12 @@ class TelegramWebhookController extends Controller
 
     private function reply(string $chatId, string $text): void
     {
-        $token = config('services.telegram.bot_token');
-        if (!$token) {
+        if (! config('services.telegram.bot_token')) {
             return;
         }
 
         try {
-            \Illuminate\Support\Facades\Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
+            TelegramHttp::client()->post(TelegramHttp::apiUrl('sendMessage'), [
                 'chat_id' => $chatId,
                 'text' => $text,
             ]);

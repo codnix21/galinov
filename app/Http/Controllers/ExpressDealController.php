@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\AppNotifier;
 use App\Support\ContractAutoFill;
 use App\Support\ContractFormOptions;
+use App\Support\PropertyListingAuthor;
 use App\Support\RealtorScope;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -117,10 +118,10 @@ class ExpressDealController extends Controller
     private function canManageDeal(Request $request, Property $property): bool
     {
         $user = $request->user();
-        if ($user->isAdmin() || $user->isRealtor()) {
-            return true;
+        if (!$user) {
+            return false;
         }
 
-        return (int) ($property->polzovatel_id ?? 0) === (int) $user->id;
+        return PropertyListingAuthor::canManage($user, $property);
     }
 }

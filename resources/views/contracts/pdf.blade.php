@@ -22,6 +22,10 @@
         <div class="contract-number">№ {{ $contract->id }} от {{ $contract->data_nachala->format('d.m.Y') }}</div>
     </div>
 
+    @if(!empty($contractTemplate?->vvedenie))
+        <p style="margin-bottom: 12px; text-align: justify;">{{ $contractTemplate->vvedenie }}</p>
+    @endif
+
     <div class="section">
         <div class="section-title">1. Предмет договора</div>
         <div class="info-grid">
@@ -51,9 +55,13 @@
             @endif
         </div>
         <p style="margin-top: 8px; text-align: justify;">
-            {{ $isRent ? 'Арендодатель' : 'Продавец' }} обязуется передать, а
-            {{ $isRent ? 'Арендатор' : 'Покупатель' }} принять объект недвижимости, указанный в разделе 2,
-            на условиях настоящего договора.
+            @if(!empty($contractTemplate?->predmet))
+                {{ $contractTemplate->predmet }}
+            @else
+                {{ $isRent ? 'Арендодатель' : 'Продавец' }} обязуется передать, а
+                {{ $isRent ? 'Арендатор' : 'Покупатель' }} принять объект недвижимости, указанный в разделе 2,
+                на условиях настоящего договора.
+            @endif
         </p>
     </div>
 

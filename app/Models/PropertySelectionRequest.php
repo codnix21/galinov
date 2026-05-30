@@ -15,6 +15,7 @@ class PropertySelectionRequest extends Model
 
     protected $fillable = [
         'polzovatel_id',
+        'naznachen_rieltor_id',
         'imya',
         'telefon',
         'email',
@@ -40,6 +41,11 @@ class PropertySelectionRequest extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'polzovatel_id');
+    }
+
+    public function assignedRealtor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'naznachen_rieltor_id');
     }
 
     /** Краткое описание критериев для списка риэлтора. */

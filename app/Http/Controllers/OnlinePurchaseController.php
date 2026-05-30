@@ -9,6 +9,7 @@ use App\Services\AppNotifier;
 use App\Services\ContractEcpService;
 use App\Services\RobokassaService;
 use App\Services\TestPaymentService;
+use App\Services\PropertyOwnersService;
 use App\Support\ContractApproval;
 use App\Support\ContractAutoFill;
 use Illuminate\Http\RedirectResponse;
@@ -145,11 +146,16 @@ class OnlinePurchaseController extends Controller
                 ->with('error', 'Сначала завершите оплату.');
         }
 
-        $contract->load(['property', 'owner', 'buyer', 'realtor', 'statusRelation']);
+        $contract->load(['property.owners.user', 'owner', 'buyer', 'realtor', 'statusRelation', 'sellers.user']);
+
+        if ($contract->sellers->isEmpty()) {
+            PropertyOwnersService::copySellersToContract($contract, $contract->property);
+            $contract->load('sellers.user');
+        }
 
         $ecpService = app(ContractEcpService::class);
         $ecpService->autoSignOwnerAndRealtor($contract);
-        $contract->refresh();
+        $contract->refresh(['sellers.user']);
 
         $ecpStatuses = $ecpService->signatureStatuses($contract);
         $ecpFullySigned = $ecpService->isFullySigned($contract);
